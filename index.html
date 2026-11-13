@@ -28,11 +28,7 @@
       padding: 16px;
       color: #fff;
     }
-    .preview-header {
-      text-align: center;
-      margin-bottom: 14px;
-      max-width: 440px;
-    }
+    .preview-header { text-align: center; margin-bottom: 12px; max-width: 520px; }
     .preview-badge {
       display: inline-block;
       background: rgba(214, 158, 46, 0.2);
@@ -44,18 +40,12 @@
       font-weight: 700;
       margin-bottom: 6px;
     }
-    .preview-tip {
-      font-size: 12px;
-      color: #CBD5E1;
-      line-height: 1.45;
-    }
-    .preview-tip code { color: #90CDF4; font-weight: 700; }
-
-    /* Phone Shell */
+    .preview-tip { font-size: 11.5px; color: #CBD5E1; line-height: 1.5; }
+    .preview-tip code { color: #90CDF4; font-weight: 700; background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
     .phone {
-      width: 380px;
+      width: 390px;
       max-width: 100%;
-      height: 760px;
+      height: 780px;
       max-height: 88vh;
       background: #0B1120;
       border-radius: 42px;
@@ -87,7 +77,6 @@
       transform: translateX(-50%);
       z-index: 20;
     }
-
     .app-topbar {
       background: var(--navy);
       color: #fff;
@@ -121,12 +110,20 @@
       font-weight: 700;
       cursor: pointer;
     }
-
-    .screen-body { flex: 1; overflow-y: auto; padding: 14px; }
+    .class-bar {
+      background: var(--blue-surface);
+      padding: 7px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      border-bottom: 1px solid #CBD5E1;
+      flex-shrink: 0;
+    }
+    .screen-body { flex: 1; overflow-y: auto; padding: 13px; }
     .welcome-bg { background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%); color: #fff; text-align: center; }
-    .logo-circle { width: 86px; height: 86px; border-radius: 50%; border: 3px solid var(--amber); margin: 8px auto 12px; overflow: hidden; background: #fff; }
+    .logo-circle { width: 84px; height: 84px; border-radius: 50%; border: 3px solid var(--amber); margin: 8px auto 12px; overflow: hidden; background: #fff; }
     .logo-circle img { width: 100%; height: 100%; object-fit: cover; }
-
     .single-badge {
       display: inline-block;
       background: rgba(43, 108, 176, 0.35);
@@ -137,7 +134,6 @@
       font-weight: 700;
       margin-bottom: 16px;
     }
-
     .role-card { text-align: left; border-radius: 14px; padding: 14px; margin-bottom: 11px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); transition: transform 0.12s ease; }
     .role-card:hover { transform: scale(1.01); }
     .role-admin { background: linear-gradient(90deg, #1E3A8A, #172554); }
@@ -146,12 +142,20 @@
     .role-title { font-size: 15px; font-weight: 800; color: #fff; display: flex; justify-content: space-between; align-items: center; }
     .role-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.16); }
     .role-desc { font-size: 11px; color: #CBD5E1; margin-top: 5px; line-height: 1.4; }
-
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .stat-box { background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-    .stat-label { font-size: 10px; color: var(--muted); font-weight: 600; }
+    .stat-box {
+      background: #fff;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.12s, transform 0.1s;
+    }
+    .stat-box:hover { transform: translateY(-1px); }
+    .stat-box.selected { border-color: var(--navy); background: #F8FAFC; }
+    .stat-label { font-size: 10px; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; }
     .stat-val { font-size: 18px; font-weight: 800; color: var(--navy); margin-top: 2px; }
-
     .card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     .card-title { font-size: 13px; font-weight: 800; color: var(--navy); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .badge { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
@@ -159,38 +163,37 @@
     .badge-amber { background: #FEEBC8; color: #7B341E; }
     .badge-red { background: #FED7D7; color: #742A2A; }
     .badge-blue { background: #BEE3F8; color: #2A4365; }
-
     .btn {
       border: none;
       border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
+      padding: 8px 11px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 4px;
     }
     .btn-navy { background: var(--navy); color: #fff; }
     .btn-green { background: var(--green); color: #fff; }
     .btn-blue { background: var(--blue); color: #fff; }
     .btn-amber { background: var(--amber); color: #000; }
+    .btn-red { background: var(--red); color: #fff; }
     .btn-outline { background: transparent; border: 1px solid #CBD5E1; color: var(--navy); }
-    .btn-sm { padding: 5px 8px; font-size: 11px; }
+    .btn-sm { padding: 5px 8px; font-size: 10.5px; }
     .btn-full { width: 100%; }
-
-    .input {
+    .input, .select {
       width: 100%;
-      padding: 9px 10px;
+      padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #CBD5E1;
       font-size: 12px;
       margin-bottom: 8px;
       outline: none;
+      background: #fff;
     }
-    .input:focus { border-color: var(--navy); }
-
+    .input:focus, .select:focus { border-color: var(--navy); }
     .row-item {
       display: flex;
       justify-content: space-between;
@@ -201,14 +204,29 @@
       gap: 8px;
     }
     .row-item:last-child { border-bottom: none; }
-
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--blue-surface);
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      flex-shrink: 0;
+      overflow: hidden;
+      border: 1.5px solid #CBD5E1;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .att-btns { display: flex; gap: 4px; }
     .att-btn {
-      width: 26px;
-      height: 26px;
+      width: 25px;
+      height: 25px;
       border-radius: 6px;
       border: none;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 800;
       cursor: pointer;
       background: #EDF2F7;
@@ -218,8 +236,7 @@
     .att-btn.active-A { background: var(--red); color: #fff; }
     .att-btn.active-L { background: var(--amber); color: #fff; }
     .att-btn.active-E { background: #64748B; color: #fff; }
-
-    .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; }
+    .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
     .chip {
       border: 1px solid #CBD5E1;
       background: #fff;
@@ -232,44 +249,42 @@
       white-space: nowrap;
     }
     .chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
-
     .bottom-nav {
       background: #fff;
       border-top: 1px solid #E2E8F0;
       display: flex;
       justify-content: space-around;
-      padding: 7px 4px;
+      padding: 7px 3px;
       flex-shrink: 0;
     }
     .nav-btn {
       background: none;
       border: none;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       color: var(--muted);
       cursor: pointer;
-      padding: 5px 7px;
+      padding: 5px 6px;
       border-radius: 8px;
     }
     .nav-btn.active { color: var(--navy); background: var(--blue-surface); }
-
     .modal-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(15, 23, 42, 0.68);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 14px;
       z-index: 30;
     }
     .modal-box {
       background: #fff;
       color: var(--text);
       border-radius: 16px;
-      padding: 16px;
+      padding: 14px;
       width: 100%;
-      max-height: 85%;
+      max-height: 88%;
       overflow-y: auto;
       box-shadow: 0 20px 40px rgba(0,0,0,0.35);
     }
@@ -288,13 +303,56 @@
       white-space: nowrap;
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
+    /* Report Card Table */
+    .rc-card {
+      background: #fff;
+      border: 1.5px solid var(--navy);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(26, 54, 93, 0.08);
+    }
+    .rc-header {
+      background: linear-gradient(135deg, var(--navy), #1E40AF);
+      color: #fff;
+      padding: 11px 12px;
+    }
+    .rc-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .rc-table th {
+      background: #EBF8FF;
+      color: var(--navy);
+      text-align: left;
+      padding: 7px 8px;
+      font-weight: 800;
+      border-bottom: 1px solid #CBD5E1;
+    }
+    .rc-table td { padding: 6.5px 8px; border-bottom: 1px solid #F1F5F9; }
+    .rc-table tr:nth-child(even) td { background: #F8FAFC; }
+    .rc-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: #F1F5F9;
+      padding: 8px;
+      text-align: center;
+      font-size: 10.5px;
+    }
+    .rc-remark {
+      background: #FFFBEB;
+      border-top: 1px solid #FDE68A;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #78350F;
+    }
   </style>
 </head>
 <body>
   <div class="preview-header">
-    <div class="preview-badge">Iftin Academy • Interactive Preview (No Download)</div>
+    <div class="preview-badge">Iftin Academy • Interactive App Preview (No Download)</div>
     <p class="preview-tip">
-      Admin Passcode: <code>IFTIN#2026</code> &nbsp;|&nbsp; Parent Link: <code>IFT-101</code> / <code>749201</code> &amp; <code>IFT-102</code> / <code>831942</code>
+      Admin: <code>IFTIN#2026</code> &nbsp;|&nbsp;
+      Class Passwords: Form 1A <code>4819</code>, Grade 8 <code>7294</code> &nbsp;|&nbsp;
+      Parent Link: <code>IFT-101</code> / <code>749201</code>
     </p>
   </div>
 
@@ -311,7 +369,7 @@
         </div>
         <button class="lang-pill" onclick="toggleLang()" id="langPill">SO | EN</button>
       </div>
-
+      <div id="topSubBar"></div>
       <div class="screen-body" id="screenBody"></div>
       <div class="bottom-nav" id="bottomNav" style="display:none;"></div>
       <div id="modalContainer"></div>
@@ -324,44 +382,91 @@
       lang: 'so',
       portal: 'HOME',
       tab: 'DASHBOARD',
-      selectedClassId: 'class_form1a',
+      unlockedClasses: [],
+      selectedClassId: null,
+      parentRoomCreated: false,
       selectedChildId: 'IFT-101',
       linkedChildren: ['IFT-101'],
+      selectedAttFilter: 'LATE',
+      selectedAdminFolderId: null,
+      selectedAdminExamId: null,
       teachers: [
-        { id: 'T1', name: 'Ustadh Ahmed Ali', phone: '+252 61 711 2233', subjects: 'Math, Science' },
-        { id: 'T2', name: 'Ustaad Maryam Jama', phone: '+252 61 822 4455', subjects: 'Somali, Islamic' }
+        { id: 'T1', name: 'Ustadh Ahmed Ali', phone: '+252 61 711 2233', email: 'ahmed.ali@iftinschool.so', photo: '' },
+        { id: 'T2', name: 'Ustaad Maryam Jama', phone: '+252 61 822 4455', email: 'maryam.jama@iftinschool.so', photo: '' }
       ],
       classes: [
-        { id: 'class_form1a', name: 'Form 1A', teacher: 'Ustadh Ahmed Ali', code: '4819', year: '2025-2026' },
-        { id: 'class_grade8', name: 'Grade 8', teacher: 'Ustaad Maryam Jama', code: '7294', year: '2025-2026' }
+        { id: 'class_form1a', name: 'Form 1A', teacherId: 'T1', teacherName: 'Ustadh Ahmed Ali', code: '4819', year: '2025-2026' },
+        { id: 'class_grade8', name: 'Grade 8', teacherId: 'T2', teacherName: 'Ustaad Maryam Jama', code: '7294', year: '2025-2026' }
       ],
       students: [
-        { id: 'IFT-101', name: 'Abdi Mohamed Farah', classId: 'class_form1a', className: 'Form 1A', code: '749201', phone: '+252 61 900 1122' },
-        { id: 'IFT-102', name: 'Amina Hassan Warsame', classId: 'class_form1a', className: 'Form 1A', code: '831942', phone: '+252 61 900 3344' },
-        { id: 'IFT-103', name: 'Khadar Omar Guled', classId: 'class_form1a', className: 'Form 1A', code: '652190', phone: '+252 61 900 5566' },
-        { id: 'IFT-104', name: 'Sahra Osman Shire', classId: 'class_form1a', className: 'Form 1A', code: '941320', phone: '+252 61 900 7788' }
+        { id: 'IFT-101', name: 'Abdi Mohamed Farah', classId: 'class_form1a', className: 'Form 1A', code: '749201', phone: '+252 61 900 1122', photo: '' },
+        { id: 'IFT-102', name: 'Amina Hassan Warsame', classId: 'class_form1a', className: 'Form 1A', code: '831942', phone: '+252 61 900 3344', photo: '' },
+        { id: 'IFT-103', name: 'Khadar Omar Guled', classId: 'class_form1a', className: 'Form 1A', code: '652190', phone: '+252 61 900 5566', photo: '' },
+        { id: 'IFT-104', name: 'Sahra Osman Shire', classId: 'class_form1a', className: 'Form 1A', code: '941320', phone: '+252 61 900 7788', photo: '' }
       ],
-      attendance: { 'IFT-101': 'P', 'IFT-102': 'P', 'IFT-103': 'L', 'IFT-104': 'P' },
+      attendanceToday: { 'IFT-101': 'P', 'IFT-102': 'P', 'IFT-103': 'L', 'IFT-104': 'A' },
+      attendanceHistory: [
+        { date: '2026-02-20', daySo: 'Sabti', dayEn: 'Saturday', records: { 'IFT-101': 'L', 'IFT-102': 'P', 'IFT-103': 'P', 'IFT-104': 'A' } },
+        { date: '2026-02-22', daySo: 'Isniin', dayEn: 'Monday', records: { 'IFT-101': 'L', 'IFT-102': 'A', 'IFT-103': 'P', 'IFT-104': 'P' } },
+        { date: '2026-02-23', daySo: 'Talaado', dayEn: 'Tuesday', records: { 'IFT-101': 'P', 'IFT-102': 'P', 'IFT-103': 'E', 'IFT-104': 'P' } },
+        { date: '2026-02-24', daySo: 'Arbaco', dayEn: 'Wednesday', records: { 'IFT-101': 'A', 'IFT-102': 'P', 'IFT-103': 'P', 'IFT-104': 'P' } }
+      ],
+      examFolders: [
+        { id: 'folder_midterm_1', name: 'Midterm Term 1 (2025-2026)', type: 'MIDTERM', year: '2025-2026' },
+        { id: 'folder_monthly_nov', name: 'Imtixaanka Bisha Nofembar', type: 'MONTHLY', year: '2025-2026' }
+      ],
       exams: [
-        { id: 'EX1', name: 'Imtixaanka Nus-Sannadka (Midterm)', classId: 'class_form1a', status: 'PUBLISHED', marks: { 'IFT-101': 480, 'IFT-102': 480, 'IFT-103': 460, 'IFT-104': 450 }, max: 500 },
-        { id: 'EX2', name: 'Monthly Test - November', classId: 'class_form1a', status: 'SUBMITTED', marks: { 'IFT-101': 92, 'IFT-102': 88, 'IFT-103': 92, 'IFT-104': 79 }, max: 100 }
+        {
+          id: 'EX1',
+          folderId: 'folder_midterm_1',
+          name: 'Imtixaanka Nus-Sannadka (Midterm)',
+          classId: 'class_form1a',
+          className: 'Form 1A',
+          status: 'PUBLISHED',
+          subjects: ['Somali', 'English', 'Mathematics', 'Science', 'Islamic Studies'],
+          maxPerSub: 100,
+          marks: {
+            'IFT-101': { Somali: 95, English: 92, Mathematics: 98, Science: 96, 'Islamic Studies': 99 },
+            'IFT-102': { Somali: 96, English: 95, Mathematics: 94, Science: 97, 'Islamic Studies': 98 },
+            'IFT-103': { Somali: 90, English: 88, Mathematics: 92, Science: 94, 'Islamic Studies': 96 },
+            'IFT-104': { Somali: 88, English: 85, Mathematics: 90, Science: 91, 'Islamic Studies': 96 }
+          },
+          remarks: {
+            'IFT-101': 'Arday aad u dadaala, asluub wanaagsan iyo xirfad xisaabeed sare leh.',
+            'IFT-102': 'Natiijo aad u sarreysa, sii wad dadaalkaaga fiican.',
+            'IFT-103': 'Waxqabad wanaagsan, xoogga saar luqadda Ingiriiska.',
+            'IFT-104': 'Dadaal fiican, waxaad u qalantaa dhiirrigelin iyo garab istaag.'
+          }
+        }
       ],
-      fees: [
-        { id: 'F1', studentId: 'IFT-101', studentName: 'Abdi Mohamed Farah', title: 'November Tuition', amount: 20, paid: 20, status: 'PAID', receipt: 'RCP-84912' },
-        { id: 'F2', studentId: 'IFT-102', studentName: 'Amina Hassan Warsame', title: 'November Tuition', amount: 20, paid: 0, status: 'UNPAID', receipt: '' }
+      feeFolders: [
+        {
+          id: 'fee_nov',
+          title: 'Bisha Nofembar - Fiiga Dugsiga',
+          classId: 'class_form1a',
+          amount: 20,
+          dueDate: '2026-11-20',
+          published: true,
+          payments: {
+            'IFT-101': { status: 'PAID', receipt: 'RCP-84912', date: '2026-11-05' },
+            'IFT-102': { status: 'UNPAID', receipt: '', date: '' },
+            'IFT-103': { status: 'UNPAID', receipt: '', date: '' },
+            'IFT-104': { status: 'UNPAID', receipt: '', date: '' }
+          }
+        }
       ],
-      homework: [
-        { id: 'H1', classId: 'class_form1a', subject: 'Mathematics', title: 'Algebraic Equations Ch. 4', due: '2026-11-15', teacher: 'Ustadh Ahmed Ali' }
+      parentNotifications: [
+        { studentId: 'IFT-101', title: 'Rasiidka Fiiga • RCP-84912', msg: 'Bisha Nofembar ($20) waa la bixiyay. Mahadsanid!', date: '2026-11-05', receipt: 'RCP-84912' }
       ],
       remarks: [
-        { studentId: 'IFT-101', cat: 'GOOD PERFORMANCE', msg: 'Abdi showed exceptional participation in mathematics this week!', teacher: 'Ustadh Ahmed Ali', date: '2026-11-08' }
+        { studentId: 'IFT-101', cat: 'WAXQABAD WANAAGSAN', msg: 'Abdi wuxuu muujiyay ka qaybqaadasho heer sare ah toddobaadkan!', teacher: 'Ustadh Ahmed Ali', date: '2026-11-08' }
       ]
     };
 
     function showToast(msg) {
       const el = document.getElementById('toastContainer');
       el.innerHTML = `<div class="toast">${msg}</div>`;
-      setTimeout(() => { el.innerHTML = ''; }, 2400);
+      setTimeout(() => { el.innerHTML = ''; }, 2500);
     }
 
     function toggleLang() {
@@ -380,13 +485,107 @@
       render();
     }
 
+    function closeModal() {
+      document.getElementById('modalContainer').innerHTML = '';
+    }
+
+    function avatarHtml(person) {
+      if (person.photo) return `<div class="avatar"><img src="${person.photo}" alt="${person.name}" /></div>`;
+      const init = (person.name || 'I')[0].toUpperCase();
+      return `<div class="avatar">${init}</div>`;
+    }
+
+    function gradeFromPct(pct) {
+      if (pct >= 90) return 'A+';
+      if (pct >= 80) return 'A';
+      if (pct >= 70) return 'B';
+      if (pct >= 60) return 'C';
+      if (pct >= 50) return 'D';
+      return 'F';
+    }
+
+    function computeExamResults(exam) {
+      const classStudents = state.students.filter(s => s.classId === exam.classId);
+      const totalMax = exam.subjects.length * exam.maxPerSub;
+      const rows = classStudents.map(st => {
+        const stMarks = exam.marks[st.id] || {};
+        let total = 0;
+        exam.subjects.forEach(sub => { total += Number(stMarks[sub] || 0); });
+        const pct = totalMax > 0 ? (total / totalMax) * 100 : 0;
+        return {
+          student: st,
+          stMarks,
+          total,
+          totalMax,
+          pct,
+          grade: gradeFromPct(pct),
+          remark: (exam.remarks && exam.remarks[st.id]) || ''
+        };
+      }).sort((a, b) => b.total - a.total);
+      let pos = 0;
+      rows.forEach((r, idx) => {
+        if (idx === 0 || r.total !== rows[idx - 1].total) pos = idx + 1;
+        r.pos = pos;
+      });
+      return rows;
+    }
+
+    function buildReportCardHtml(exam, row, isSo) {
+      return `
+        <div class="rc-card">
+          <div class="rc-header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:13px;font-weight:800;">${row.student.name}</div>
+                <div style="font-size:10.5px;color:#CBD5E1;">${row.student.id} • ${exam.className} • ${exam.name}</div>
+              </div>
+              <div style="text-align:right;">
+                <span class="badge badge-amber">#${row.pos}</span>
+                <span class="badge badge-green">${row.grade}</span>
+              </div>
+            </div>
+          </div>
+          <table class="rc-table">
+            <thead>
+              <tr>
+                <th>${isSo ? 'Maaddo' : 'Subject'}</th>
+                <th style="text-align:center;">${isSo ? 'Ugu Badan' : 'Max'}</th>
+                <th style="text-align:center;">${isSo ? 'Buundo' : 'Score'}</th>
+                <th style="text-align:center;">${isSo ? 'Darajo' : 'Grade'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${exam.subjects.map(sub => {
+                const sc = Number(row.stMarks[sub] || 0);
+                const g = gradeFromPct((sc / exam.maxPerSub) * 100);
+                return `<tr>
+                  <td><strong>${sub}</strong></td>
+                  <td style="text-align:center;">${exam.maxPerSub}</td>
+                  <td style="text-align:center;font-weight:800;color:var(--navy);">${sc}</td>
+                  <td style="text-align:center;"><span class="badge ${g.startsWith('A') ? 'badge-green' : 'badge-blue'}">${g}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          <div class="rc-summary">
+            <div><div style="color:var(--muted);">${isSo?'Wadar':'Total'}</div><strong>${row.total}/${row.totalMax}</strong></div>
+            <div><div style="color:var(--muted);">${isSo?'Boqolley':'Percent'}</div><strong>${row.pct.toFixed(1)}%</strong></div>
+            <div><div style="color:var(--muted);">${isSo?'Darajo':'Grade'}</div><strong style="color:var(--green)">${row.grade}</strong></div>
+            <div><div style="color:var(--muted);">${isSo?'Kaalin':'Rank'}</div><strong style="color:var(--navy)">#${row.pos}</strong></div>
+          </div>
+          ${row.remark ? `<div class="rc-remark"><strong>${isSo?'Qiimeynta Macallinka (Waxa uu u qalmo):':'Teacher Evaluation:'}</strong> ${row.remark}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // ---- ADMIN PORTAL GATE ----
     function openAdminGate() {
       const isSo = state.lang === 'so';
       document.getElementById('modalContainer').innerHTML = `
-        <div class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-overlay" onclick="closeModal()">
           <div class="modal-box" onclick="event.stopPropagation()">
             <div class="card-title">${isSo ? 'Albaabka Maamulka' : 'Admin Portal Login'}</div>
-            <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+            <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">
               ${isSo ? 'Geli furaha sirta maamulka (Passcode: IFTIN#2026):' : 'Enter administrator passcode (IFTIN#2026):'}
             </p>
             <input class="input" type="password" id="adminPassInput" value="IFTIN#2026" />
@@ -399,314 +598,887 @@
     }
 
     function verifyAdmin() {
-      const val = document.getElementById('adminPassInput').value.trim();
-      if (val === 'IFTIN#2026') {
+      if (document.getElementById('adminPassInput').value.trim() === 'IFTIN#2026') {
         closeModal();
         state.portal = 'ADMIN';
         state.tab = 'DASHBOARD';
         render();
       } else {
-        showToast(state.lang === 'so' ? 'Furaha sirta waa khalad!' : 'Invalid Passcode!');
+        showToast(state.lang === 'so' ? 'Furaha sirta waa khalad!' : 'Incorrect passcode!');
       }
     }
 
-    function closeModal() {
-      document.getElementById('modalContainer').innerHTML = '';
+    // ---- PARENT ONE-TIME ROOM ----
+    function enterParentPortal() {
+      state.portal = 'PARENT';
+      state.tab = 'RESULTS';
+      render();
     }
 
-    function computeCompetitionRanks(marksObj, maxMarks) {
-      const entries = Object.entries(marksObj).map(([sid, score]) => {
-        const st = state.students.find(s => s.id === sid) || { name: sid };
-        const pct = maxMarks > 0 ? (score / maxMarks) * 100 : 0;
-        const grade = pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B' : pct >= 60 ? 'C' : pct >= 50 ? 'D' : 'F';
-        return { sid, name: st.name, score, pct, grade };
-      }).sort((a, b) => b.score - a.score);
-
-      for (let i = 0; i < entries.length; i++) {
-        entries[i].pos = (i > 0 && entries[i].score === entries[i - 1].score) ? entries[i - 1].pos : (i + 1);
+    function createParentRoomOnce() {
+      const stId = document.getElementById('roomStId').value.trim().toUpperCase();
+      const code = document.getElementById('roomStCode').value.trim();
+      const found = state.students.find(s => s.id === stId && s.code === code);
+      if (!found) {
+        showToast(state.lang === 'so' ? 'ID ama Code waa khalad!' : 'Invalid Student ID or Code!');
+        return;
       }
-      return entries;
+      state.parentRoomCreated = true;
+      state.linkedChildren = [found.id];
+      state.selectedChildId = found.id;
+      showToast(state.lang === 'so' ? 'Qolka Waalidka hal mar ayaa la abuuray!' : 'Parent Room created!');
+      render();
     }
 
+    // ---- MAIN RENDER ----
     function render() {
       const isSo = state.lang === 'so';
-      document.getElementById('langPill').textContent = isSo ? 'SO | EN' : 'EN | SO';
-      document.getElementById('backBtn').style.display = state.portal === 'HOME' ? 'none' : 'inline-block';
-
       const body = document.getElementById('screenBody');
       const nav = document.getElementById('bottomNav');
       const sub = document.getElementById('portalSub');
+      const backBtn = document.getElementById('backBtn');
+      const topSubBar = document.getElementById('topSubBar');
+
+      document.getElementById('langPill').textContent = isSo ? 'SO ✓ | EN' : 'SO | EN ✓';
+      topSubBar.innerHTML = '';
 
       if (state.portal === 'HOME') {
+        backBtn.style.display = 'none';
         nav.style.display = 'none';
+        sub.textContent = isSo ? 'Ku soo dhowow' : 'Welcome';
         body.className = 'screen-body welcome-bg';
-        sub.textContent = isSo ? 'Dooro Qaybtaada' : 'Select Your Portal';
         body.innerHTML = `
-          <div class="logo-circle"><img src="school_logo.jpg" alt="Iftin Logo" /></div>
-          <div style="font-size:18px;font-weight:800;margin-bottom:3px;">IFTIN ACADEMY</div>
-          <div style="font-size:11px;color:#90CDF4;margin-bottom:10px;">${isSo ? 'Aqoontu waa Iftiin - Waxbarasho Tayo Leh' : 'Education for a Brighter Future'}</div>
-          <div class="single-badge">Single School System • ID: iftin_school_2026</div>
+          <div class="logo-circle"><img src="school_logo.jpg" alt="Iftin Academy" /></div>
+          <h2 style="font-size:19px;font-weight:900;margin-bottom:4px;">IFTIN ACADEMY</h2>
+          <p style="font-size:12px;color:#CBD5E1;margin-bottom:10px;">${isSo ? 'Nidaamka Maamulka Dugsiga' : 'School Management System'}</p>
+          <div class="single-badge">✓ ${isSo ? 'Nidaamka Hal Dugsi Keliya' : 'Single Registered School System'}</div>
 
           <div class="role-card role-admin" onclick="openAdminGate()">
-            <div class="role-title"><span>${isSo ? 'Maamulaha' : 'Administrator'}</span><span class="role-tag">${isSo ? 'Albaabka Maamulka' : 'Admin Portal'}</span></div>
-            <div class="role-desc">${isSo ? 'Maamul macallimiinta, fasalada, ardayda, daabacaadda imtixaannada & lacagaha.' : 'Manage teachers, classes, students, exam publishing & school fees.'}</div>
+            <div class="role-title"><span>${isSo ? 'Maamulka (Admin)' : 'Administrator'}</span><span class="role-tag">ADMIN</span></div>
+            <div class="role-desc">${isSo ? 'Maamul macallimiinta, fasallada, iyo folder-rada imtixaanka' : 'Manage teachers, classes, and exam folders'}</div>
           </div>
 
           <div class="role-card role-teacher" onclick="state.portal='TEACHER';state.tab='DASHBOARD';render();">
-            <div class="role-title"><span>${isSo ? 'Macallinka' : 'Teacher'}</span><span class="role-tag">${isSo ? 'Albaabka Macallimiinta' : 'Teacher Portal'}</span></div>
-            <div class="role-desc">${isSo ? 'Xaadiriska fasalka, gelinta buundooyinka, kaalmaha tartanka & shaqo-guri.' : 'Daily attendance register, marks entry, competition ranking & homework.'}</div>
+            <div class="role-title"><span>${isSo ? 'Macallinka (Teacher)' : 'Teacher'}</span><span class="role-tag">CLASS LOCK</span></div>
+            <div class="role-desc">${isSo ? 'Geli password-ka fasalka: xaadiriska, buundooyinka, fiiga' : 'Enter class password: attendance, grades, fees'}</div>
           </div>
 
-          <div class="role-card role-parent" onclick="state.portal='PARENT';state.tab='RESULTS';render();">
-            <div class="role-title"><span>${isSo ? 'Waalidka' : 'Parent'}</span><span class="role-tag">${isSo ? 'Qolka Waalidiinta' : 'Parent Room'}</span></div>
-            <div class="role-desc">${isSo ? 'Ku xir ilmahaaga ID & Furaha, la soco natiijooyinka, xaadiriska & fiiga.' : 'Link children via ID & code, view published results, attendance & fees.'}</div>
+          <div class="role-card role-parent" onclick="enterParentPortal()">
+            <div class="role-title"><span>${isSo ? 'Waalidka (Parent)' : 'Parent'}</span><span class="role-tag">PARENT</span></div>
+            <div class="role-desc">${isSo ? 'Abuur qol hal mar: eeg natiijada, xaadiriska, iyo rasiidka fiiga' : 'One-time room setup: view report cards, attendance & receipts'}</div>
           </div>
         `;
         return;
       }
 
+      backBtn.style.display = 'inline-block';
       body.className = 'screen-body';
-      nav.style.display = 'flex';
 
       if (state.portal === 'ADMIN') {
-        sub.textContent = isSo ? 'Albaabka Maamulka' : 'Admin Portal';
+        sub.textContent = isSo ? 'Xarunta Maamulka' : 'Admin Portal';
+        nav.style.display = 'flex';
         nav.innerHTML = `
-          <button class="nav-btn ${state.tab==='DASHBOARD'?'active':''}" onclick="setTab('DASHBOARD')">${isSo?'Guud':'Home'}</button>
-          <button class="nav-btn ${state.tab==='STUDENTS'?'active':''}" onclick="setTab('STUDENTS')">${isSo?'Ardayda':'Students'}</button>
+          <button class="nav-btn ${state.tab==='DASHBOARD'?'active':''}" onclick="setTab('DASHBOARD')">${isSo?'Xarunta':'Home'}</button>
+          <button class="nav-btn ${state.tab==='TEACHERS'?'active':''}" onclick="setTab('TEACHERS')">${isSo?'Macallin':'Teachers'}</button>
+          <button class="nav-btn ${state.tab==='CLASSES'?'active':''}" onclick="setTab('CLASSES')">${isSo?'Fasalada':'Classes'}</button>
           <button class="nav-btn ${state.tab==='EXAMS'?'active':''}" onclick="setTab('EXAMS')">${isSo?'Imtixaan':'Exams'}</button>
           <button class="nav-btn ${state.tab==='FEES'?'active':''}" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
         `;
         renderAdminTab(body, isSo);
       } else if (state.portal === 'TEACHER') {
-        sub.textContent = isSo ? 'Albaabka Macallinka' : 'Teacher Portal';
-        nav.innerHTML = `
-          <button class="nav-btn ${state.tab==='DASHBOARD'?'active':''}" onclick="setTab('DASHBOARD')">${isSo?'Fasal':'Class'}</button>
-          <button class="nav-btn ${state.tab==='ATTENDANCE'?'active':''}" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiris':'Attend'}</button>
-          <button class="nav-btn ${state.tab==='MARKS'?'active':''}" onclick="setTab('MARKS')">${isSo?'Buundo':'Marks'}</button>
-          <button class="nav-btn ${state.tab==='HOMEWORK'?'active':''}" onclick="setTab('HOMEWORK')">${isSo?'Shaqo-Guri':'HW'}</button>
+        sub.textContent = isSo ? 'Xarunta Macallinka' : 'Teacher Portal';
+        topSubBar.innerHTML = `
+          <div class="class-bar">
+            <strong style="font-size:11px;color:var(--navy);">${isSo?'Fasalka:':'Class:'}</strong>
+            ${state.classes.map(c => {
+              const unlocked = state.unlockedClasses.includes(c.id);
+              const active = state.selectedClassId === c.id && unlocked;
+              return `<button class="chip ${active?'active':''}" onclick="onTeacherSelectClass('${c.id}')">${unlocked?'🔓':'🔒'} ${c.name}</button>`;
+            }).join('')}
+          </div>
         `;
-        renderTeacherTab(body, isSo);
+        const isUnlocked = state.selectedClassId && state.unlockedClasses.includes(state.selectedClassId);
+        if (!isUnlocked) {
+          nav.style.display = 'none';
+          renderTeacherPasswordGate(body, isSo);
+        } else {
+          nav.style.display = 'flex';
+          nav.innerHTML = `
+            <button class="nav-btn ${state.tab==='DASHBOARD'?'active':''}" onclick="setTab('DASHBOARD')">${isSo?'Guud':'Home'}</button>
+            <button class="nav-btn ${state.tab==='STUDENTS'?'active':''}" onclick="setTab('STUDENTS')">${isSo?'Ardayda':'Students'}</button>
+            <button class="nav-btn ${state.tab==='ATTENDANCE'?'active':''}" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiris':'Attend'}</button>
+            <button class="nav-btn ${state.tab==='EXAMS'?'active':''}" onclick="setTab('EXAMS')">${isSo?'Imtixaan':'Exams'}</button>
+            <button class="nav-btn ${state.tab==='FEES'?'active':''}" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
+          `;
+          renderTeacherTab(body, isSo);
+        }
       } else if (state.portal === 'PARENT') {
-        sub.textContent = isSo ? 'Qolka Waalidka' : 'Parent Portal';
-        nav.innerHTML = `
-          <button class="nav-btn ${state.tab==='RESULTS'?'active':''}" onclick="setTab('RESULTS')">${isSo?'Natiijo':'Results'}</button>
-          <button class="nav-btn ${state.tab==='ATTENDANCE'?'active':''}" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiris':'Attend'}</button>
-          <button class="nav-btn ${state.tab==='FEES'?'active':''}" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
-          <button class="nav-btn ${state.tab==='REMARKS'?'active':''}" onclick="setTab('REMARKS')">${isSo?'Fariin':'Remarks'}</button>
-        `;
-        renderParentTab(body, isSo);
+        sub.textContent = isSo ? 'Qolka Waalidka' : 'Parent Room';
+        if (!state.parentRoomCreated) {
+          nav.style.display = 'none';
+          body.innerHTML = `
+            <div class="card">
+              <div class="card-title"><span>${isSo ? 'Abuur Qolka Waalidka (Hal Mar Keliya)' : 'Create Parent Room (One-Time)'}</span><span class="badge badge-green">1x</span></div>
+              <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">
+                ${isSo ? 'Hal mar keliya ayaad abuuraysaa qolkaaga. Marka xigta si toos ah ayaad u gelaysaa.' : 'Setup your parent room once. Future logins go straight to your child dashboard.'}
+              </p>
+              <input class="input" id="roomStId" placeholder="Student ID (IFT-101)" value="IFT-101" />
+              <input class="input" id="roomStCode" placeholder="Linking Code (749201)" value="749201" />
+              <button class="btn btn-green btn-full" onclick="createParentRoomOnce()">${isSo ? 'Abuur Qolka Waalidka' : 'Create Parent Room'}</button>
+            </div>
+          `;
+        } else {
+          nav.style.display = 'flex';
+          nav.innerHTML = `
+            <button class="nav-btn ${state.tab==='RESULTS'?'active':''}" onclick="setTab('RESULTS')">${isSo?'Natiijada':'Results'}</button>
+            <button class="nav-btn ${state.tab==='ATTENDANCE'?'active':''}" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiris':'Attend'}</button>
+            <button class="nav-btn ${state.tab==='FEES'?'active':''}" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
+            <button class="nav-btn ${state.tab==='REMARKS'?'active':''}" onclick="setTab('REMARKS')">${isSo?'Fariimo':'Remarks'}</button>
+          `;
+          renderParentTab(body, isSo);
+        }
       }
     }
 
+    // =========================================================
+    // ADMIN LOGIC
+    // =========================================================
     function renderAdminTab(body, isSo) {
       if (state.tab === 'DASHBOARD') {
-        const unpaid = state.fees.reduce((a, f) => a + (f.amount - f.paid), 0);
-        const pub = state.exams.filter(e => e.status === 'PUBLISHED').length;
-        const pres = Object.values(state.attendance).filter(x => x === 'P').length;
+        const presentStudents = state.students.filter(s => (state.attendanceToday[s.id] || 'P') === 'P');
+        const absentStudents = state.students.filter(s => (state.attendanceToday[s.id] || 'P') === 'A');
+        let unpaidCount = 0;
+        state.feeFolders.forEach(f => {
+          Object.values(f.payments).forEach(p => { if (p.status !== 'PAID') unpaidCount++; });
+        });
         body.innerHTML = `
-          <div class="stat-grid">
-            <div class="stat-box"><div class="stat-label">${isSo?'Wadarta Ardayda':'Total Students'}</div><div class="stat-val">${state.students.length}</div></div>
-            <div class="stat-box"><div class="stat-label">${isSo?'Macallimiinta':'Total Teachers'}</div><div class="stat-val">${state.teachers.length}</div></div>
-            <div class="stat-box"><div class="stat-label">${isSo?'Joogta Maanta':'Present Today'}</div><div class="stat-val" style="color:var(--green)">${pres}</div></div>
-            <div class="stat-box"><div class="stat-label">${isSo?'Fiiga Aan La Bixin':'Unpaid Fees'}</div><div class="stat-val" style="color:var(--amber)">$${unpaid}</div></div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">
+            ${isSo ? 'Taabo kaar kasta si aad u aragto faahfaahintiisa:' : 'Tap any card to inspect details:'}
           </div>
-          <div class="card">
-            <div class="card-title"><span>${isSo?'Imtixaannada La Daabacay':'Published Exams'}</span><span class="badge badge-green">${pub} / ${state.exams.length}</span></div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">
-              ${isSo?'Dugsigan kaliya: Iftin Academy (iftin_school_2026). Waxaa la xakamayn karaa daabacaadda natiijooyinka.':'Single school: Iftin Academy. Use Exams tab to publish or lock results.'}
-            </p>
-            <button class="btn btn-navy btn-full" onclick="setTab('EXAMS')">${isSo?'Maamul Imtixaannada':'Manage Exam Publishing'}</button>
+          <div class="stat-grid">
+            <div class="stat-box" onclick="showAdminListModal('STUDENTS')">
+              <div class="stat-label"><span>${isSo?'Wadarta Ardayda':'Total Students'}</span><span>→</span></div>
+              <div class="stat-val">${state.students.length}</div>
+            </div>
+            <div class="stat-box" onclick="setTab('TEACHERS')">
+              <div class="stat-label"><span>${isSo?'Macallimiinta':'Total Teachers'}</span><span>→</span></div>
+              <div class="stat-val">${state.teachers.length}</div>
+            </div>
+            <div class="stat-box" onclick="setTab('CLASSES')">
+              <div class="stat-label"><span>${isSo?'Fasalada':'Total Classes'}</span><span>→</span></div>
+              <div class="stat-val">${state.classes.length}</div>
+            </div>
+            <div class="stat-box" onclick="showAdminListModal('PRESENT')">
+              <div class="stat-label"><span>${isSo?'Joogta Maanta':'Present Today'}</span><span>👁</span></div>
+              <div class="stat-val" style="color:var(--green)">${presentStudents.length}</div>
+            </div>
+            <div class="stat-box" onclick="showAdminListModal('ABSENT')">
+              <div class="stat-label"><span>${isSo?'Maqan Maanta':'Absent Today'}</span><span>👁</span></div>
+              <div class="stat-val" style="color:var(--red)">${absentStudents.length}</div>
+            </div>
+            <div class="stat-box" onclick="setTab('EXAMS')">
+              <div class="stat-label"><span>${isSo?'Folder Imtixaan':'Exam Folders'}</span><span>→</span></div>
+              <div class="stat-val" style="color:var(--blue)">${state.examFolders.length}</div>
+            </div>
+          </div>
+          <div class="card" onclick="setTab('FEES')" style="cursor:pointer;">
+            <div class="card-title"><span>${isSo?'Fiiga Aan La Bixin':'Unpaid Fee Invoices'}</span><span class="badge badge-amber">${unpaidCount}</span></div>
+            <p style="font-size:11px;color:var(--muted);">${isSo?'Taabo si aad u eegto dhammaan folder-rada fiiga.':'Tap to manage school fees.'}</p>
           </div>
         `;
-      } else if (state.tab === 'STUDENTS') {
+      } else if (state.tab === 'TEACHERS') {
         body.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <strong style="font-size:14px;color:var(--navy)">${isSo?'Ardayda':'Students'} (${state.students.length})</strong>
-            <button class="btn btn-navy btn-sm" onclick="openAddStudentModal()">+ ${isSo?'Ku dar':'Add'}</button>
+            <strong style="font-size:14px;color:var(--navy)">${isSo?'Macallimiinta':'Teachers'} (${state.teachers.length})</strong>
+            <button class="btn btn-navy btn-sm" onclick="openTeacherModal(null)">+ ${isSo?'Ku dar Macallin':'Add Teacher'}</button>
           </div>
-          ${state.students.map(s => `
+          ${state.teachers.map(t => `
             <div class="card">
-              <div class="card-title"><span>${s.name}</span><span class="badge badge-blue">${s.className}</span></div>
-              <div style="font-size:11px;color:var(--muted);">ID: <strong>${s.id}</strong> • Linking Code: <strong style="color:#B45309">${s.code}</strong></div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                ${avatarHtml(t)}
+                <div style="flex:1;">
+                  <div style="font-weight:800;font-size:13px;color:var(--navy);">${t.name}</div>
+                  <div style="font-size:11px;color:var(--muted);">${t.phone} • ${t.email}</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="openTeacherModal('${t.id}')">${isSo?'Wax ka beddel':'Edit'}</button>
+              </div>
             </div>
           `).join('')}
         `;
+      } else if (state.tab === 'CLASSES') {
+        body.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <strong style="font-size:14px;color:var(--navy)">${isSo?'Fasalada':'Classes'} (${state.classes.length})</strong>
+            <button class="btn btn-navy btn-sm" onclick="openClassModal(null)">+ ${isSo?'Fasal Cusub':'Add Class'}</button>
+          </div>
+          ${state.classes.map(c => {
+            const count = state.students.filter(s => s.classId === c.id).length;
+            return `
+              <div class="card">
+                <div class="card-title"><span>${c.name}</span><span class="badge badge-blue">PIN: ${c.code}</span></div>
+                <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">
+                  ${isSo?'Macallinka:':'Teacher:'} <strong>${c.teacherName}</strong> • ${count} ${isSo?'Arday':'Students'}
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-blue btn-sm" style="flex:1;" onclick="openClassPreview('${c.id}')">${isSo?'Eeg Fasalka (Preview)':'Preview Students'}</button>
+                  <button class="btn btn-outline btn-sm" onclick="openClassModal('${c.id}')">${isSo?'Wax ka beddel':'Edit'}</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        `;
       } else if (state.tab === 'EXAMS') {
-        body.innerHTML = state.exams.map(ex => {
-          const ranks = computeCompetitionRanks(ex.marks, ex.max);
-          return `
-            <div class="card">
-              <div class="card-title"><span>${ex.name}</span><span class="badge ${ex.status==='PUBLISHED'?'badge-green':'badge-amber'}">${ex.status}</span></div>
-              ${ranks.map(r => `
-                <div class="row-item">
-                  <span><strong>#${r.pos}</strong> ${r.name}</span>
-                  <span>${r.score}/${ex.max} (${r.grade})</span>
+        if (!state.selectedAdminFolderId) {
+          body.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <strong style="font-size:14px;color:var(--navy)">${isSo?'Folder-rada Imtixaanka':'Exam Folders'}</strong>
+              <button class="btn btn-navy btn-sm" onclick="openCreateFolderModal()">+ ${isSo?'Folder Cusub':'New Folder'}</button>
+            </div>
+            ${state.examFolders.map(f => {
+              const exCount = state.exams.filter(e => e.folderId === f.id).length;
+              return `
+                <div class="card" style="cursor:pointer;" onclick="state.selectedAdminFolderId='${f.id}';render();">
+                  <div class="card-title"><span>📁 ${f.name}</span><span class="badge badge-blue">${exCount} ${isSo?'Fasal':'Exams'}</span></div>
+                  <div style="font-size:11px;color:var(--muted);">${f.type} • ${f.year}</div>
+                </div>
+              `;
+            }).join('')}
+          `;
+        } else if (!state.selectedAdminExamId) {
+          const folder = state.examFolders.find(f => f.id === state.selectedAdminFolderId);
+          const fExams = state.exams.filter(e => e.folderId === folder.id);
+          body.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <button class="btn btn-outline btn-sm" onclick="state.selectedAdminFolderId=null;render();">← ${isSo?'Dib':'Back'}</button>
+              <strong style="font-size:13px;color:var(--navy)">📁 ${folder.name}</strong>
+            </div>
+            ${fExams.length === 0 ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Weli fasal imtixaan ma soo gudbin folder-kan.':'No classes have submitted exams to this folder yet.'}</p></div>`
+              : fExams.map(ex => `
+                <div class="card">
+                  <div class="card-title"><span>${ex.className} — ${ex.name}</span><span class="badge ${ex.status==='PUBLISHED'?'badge-green':'badge-amber'}">${ex.status}</span></div>
+                  <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button class="btn btn-navy btn-sm" style="flex:1;" onclick="state.selectedAdminExamId='${ex.id}';render();">${isSo?'Eeg Ardayda & Report Card':'Inspect Students & Reports'}</button>
+                    <button class="btn btn-green btn-sm" onclick="toggleExamPublish('${ex.id}')">${ex.status==='PUBLISHED'?(isSo?'Xir':'Lock'):(isSo?'Fasax':'Publish')}</button>
+                  </div>
                 </div>
               `).join('')}
-              <div style="display:flex;gap:8px;margin-top:10px;">
-                <button class="btn btn-green btn-sm" style="flex:1" onclick="toggleExamPublish('${ex.id}')">
-                  ${ex.status==='PUBLISHED' ? (isSo?'Xir (Lock)':'Lock') : (isSo?'Daabac (Publish)':'Publish to Parents')}
-                </button>
-              </div>
+          `;
+        } else {
+          const ex = state.exams.find(e => e.id === state.selectedAdminExamId);
+          const rows = computeExamResults(ex);
+          body.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <button class="btn btn-outline btn-sm" onclick="state.selectedAdminExamId=null;render();">← ${isSo?'Dib':'Back'}</button>
+              <strong style="font-size:13px;color:var(--navy)">${ex.className} (${rows.length} ${isSo?'Arday':'Students'})</strong>
+            </div>
+            ${rows.map(r => buildReportCardHtml(ex, r, isSo)).join('')}
+          `;
+        }
+      } else if (state.tab === 'FEES') {
+        body.innerHTML = state.feeFolders.map(ff => {
+          const paidCount = Object.values(ff.payments).filter(p => p.status === 'PAID').length;
+          return `
+            <div class="card">
+              <div class="card-title"><span>📁 ${ff.title}</span><span class="badge badge-green">${paidCount}/${Object.keys(ff.payments).length} PAID</span></div>
+              <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">$${ff.amount} • Due: ${ff.dueDate}</div>
+              ${Object.entries(ff.payments).map(([sid, p]) => {
+                const st = state.students.find(s => s.id === sid);
+                return `<div class="row-item">
+                  <span>${st ? st.name : sid}</span>
+                  <span class="badge ${p.status==='PAID'?'badge-green':'badge-red'}">${p.status} ${p.receipt?`(${p.receipt})`:''}</span>
+                </div>`;
+              }).join('')}
             </div>
           `;
         }).join('');
-      } else if (state.tab === 'FEES') {
-        body.innerHTML = state.fees.map(f => `
-          <div class="card">
-            <div class="card-title"><span>${f.studentName}</span><span class="badge ${f.status==='PAID'?'badge-green':'badge-red'}">${f.status}</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${f.title} • $${f.paid}/$${f.amount}</div>
-            ${f.paid < f.amount ? `<button class="btn btn-navy btn-sm" onclick="payFee('${f.id}')">${isSo?'Qor Lacag Bixinta ($20)':'Record Payment ($20)'}</button>` : `<span style="font-size:11px;color:var(--green);font-weight:700;">Receipt: ${f.receipt}</span>`}
-          </div>
-        `).join('');
       }
     }
 
-    function openAddStudentModal() {
+    function showAdminListModal(kind) {
+      const isSo = state.lang === 'so';
+      let title = '';
+      let list = [];
+      if (kind === 'STUDENTS') {
+        title = isSo ? 'Dhammaan Ardayda' : 'All Registered Students';
+        list = state.students;
+      } else if (kind === 'PRESENT') {
+        title = isSo ? 'Ardayda Joogta Maanta' : 'Present Students Today';
+        list = state.students.filter(s => (state.attendanceToday[s.id] || 'P') === 'P');
+      } else {
+        title = isSo ? 'Ardayda Maqan Maanta' : 'Absent Students Today';
+        list = state.students.filter(s => (state.attendanceToday[s.id] || 'P') === 'A');
+      }
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title"><span>${title}</span><span class="badge badge-blue">${list.length}</span></div>
+            ${list.length === 0 ? `<p style="font-size:12px;color:var(--muted)">${isSo?'Majiraan arday.':'No students.'}</p>` :
+              list.map(s => `<div class="row-item">
+                <div style="display:flex;align-items:center;gap:8px;">${avatarHtml(s)}<div><strong>${s.name}</strong><div style="font-size:10.5px;color:var(--muted);">${s.id} • ${s.className}</div></div></div>
+              </div>`).join('')}
+            <button class="btn btn-navy btn-full" style="margin-top:10px;" onclick="closeModal()">${isSo?'Xir':'Close'}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function openTeacherModal(teacherId) {
+      const isSo = state.lang === 'so';
+      const existing = teacherId ? state.teachers.find(t => t.id === teacherId) : null;
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${existing ? (isSo?'Wax ka beddel Macallinka':'Edit Teacher') : (isSo?'Ku dar Macallin':'Add Teacher')}</div>
+            <input class="input" id="tName" placeholder="${isSo?'Magaca oo buuxa':'Full Name'}" value="${existing?existing.name:''}" />
+            <input class="input" id="tPhone" placeholder="${isSo?'Telefoonka':'Phone'}" value="${existing?existing.phone:'+252 61 '}" />
+            <input class="input" id="tEmail" placeholder="${isSo?'Iimaylka':'Email'}" value="${existing?existing.email:''}" />
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${isSo?'Sawirka Macallinka (Ikhtiyaari - waad ka boodi kartaa):':'Teacher Photo (Optional):'}</label>
+            <input class="input" type="file" id="tPhotoFile" accept="image/*" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-navy" onclick="saveTeacher('${teacherId || ''}')">${isSo?'Keydi':'Save'}</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveTeacher(teacherId) {
+      const name = document.getElementById('tName').value.trim();
+      const phone = document.getElementById('tPhone').value.trim();
+      const email = document.getElementById('tEmail').value.trim();
+      if (!name) return;
+      const fileInput = document.getElementById('tPhotoFile');
+      const finishSave = (photoData) => {
+        if (teacherId) {
+          const t = state.teachers.find(x => x.id === teacherId);
+          t.name = name; t.phone = phone; t.email = email;
+          if (photoData) t.photo = photoData;
+          state.classes.forEach(c => { if (c.teacherId === t.id) c.teacherName = t.name; });
+        } else {
+          state.teachers.push({ id: 'T' + Date.now(), name, phone, email, photo: photoData || '' });
+        }
+        closeModal();
+        showToast(state.lang === 'so' ? 'Macallinka waa la keydiyay!' : 'Teacher saved!');
+        render();
+      };
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => finishSave(e.target.result);
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        finishSave('');
+      }
+    }
+
+    function openClassModal(classId) {
+      const isSo = state.lang === 'so';
+      const existing = classId ? state.classes.find(c => c.id === classId) : null;
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${existing ? (isSo?'Wax ka beddel Fasalka':'Edit Class') : (isSo?'Fasal Cusub':'Add Class')}</div>
+            <input class="input" id="cName" placeholder="${isSo?'Magaca Fasalka (tusaale Form 2A)':'Class Name'}" value="${existing?existing.name:''}" />
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${isSo?'Dooro Macallin Hore u Diiwaangashan:':'Select Registered Teacher:'}</label>
+            <select class="select" id="cTeacherId">
+              ${state.teachers.map(t => `<option value="${t.id}" ${existing && existing.teacherId===t.id?'selected':''}>${t.name}</option>`).join('')}
+            </select>
+            <input class="input" id="cCode" placeholder="${isSo?'Password-ka Fasalka (tusaale 1234)':'Class Password (PIN)'}" value="${existing?existing.code:Math.floor(1000+Math.random()*8999)}" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-navy" onclick="saveClass('${classId || ''}')">${isSo?'Keydi':'Save'}</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveClass(classId) {
+      const name = document.getElementById('cName').value.trim();
+      const tid = document.getElementById('cTeacherId').value;
+      const code = document.getElementById('cCode').value.trim();
+      const teacher = state.teachers.find(t => t.id === tid);
+      if (!name || !teacher || !code) return;
+      if (classId) {
+        const c = state.classes.find(x => x.id === classId);
+        c.name = name; c.teacherId = teacher.id; c.teacherName = teacher.name; c.code = code;
+        state.students.forEach(s => { if (s.classId === c.id) s.className = name; });
+      } else {
+        state.classes.push({ id: 'class_' + Date.now(), name, teacherId: teacher.id, teacherName: teacher.name, code, year: '2025-2026' });
+      }
+      closeModal();
+      showToast(state.lang === 'so' ? 'Fasalka waa la keydiyay!' : 'Class saved!');
+      render();
+    }
+
+    function openClassPreview(classId) {
+      const isSo = state.lang === 'so';
+      const c = state.classes.find(x => x.id === classId);
+      const stList = state.students.filter(s => s.classId === classId);
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title"><span>${c.name} (${isSo?'Horudhac':'Preview'})</span><span class="badge badge-blue">PIN: ${c.code}</span></div>
+            <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">${isSo?'Macallinka:':'Teacher:'} <strong>${c.teacherName}</strong></div>
+            <strong style="font-size:12px;">${isSo?'Ardayda Fasalka':'Enrolled Students'} (${stList.length}):</strong>
+            ${stList.length === 0 ? `<p style="font-size:12px;color:var(--muted);margin-top:6px;">${isSo?'Weli arday laguma darin.':'No students enrolled.'}</p>` :
+              stList.map((s, idx) => `<div class="row-item"><span>${idx+1}. <strong>${s.name}</strong></span><span style="font-size:11px;color:var(--muted);">${s.id}</span></div>`).join('')}
+            <button class="btn btn-navy btn-full" style="margin-top:10px;" onclick="closeModal()">${isSo?'Xir':'Close'}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function openCreateFolderModal() {
       const isSo = state.lang === 'so';
       document.getElementById('modalContainer').innerHTML = `
         <div class="modal-overlay" onclick="closeModal()">
           <div class="modal-box" onclick="event.stopPropagation()">
-            <div class="card-title">${isSo?'Diiwaangeli Arday Cusub':'Register New Student'}</div>
-            <input class="input" id="newStName" placeholder="${isSo?'Magaca oo buuxa':'Full Name'}" />
-            <input class="input" id="newStPhone" placeholder="${isSo?'Telefoonka Waalidka':'Parent Phone'}" value="+252 61 555 0000" />
+            <div class="card-title">${isSo?'Abuur Folder Imtixaan':'Create Exam Folder'}</div>
+            <input class="input" id="newFolderName" placeholder="${isSo?'Magaca Folder-ka':'Folder Name'}" />
             <div style="display:flex;gap:8px;justify-content:flex-end;">
               <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
-              <button class="btn btn-navy" onclick="saveNewStudent()">${isSo?'Keydi':'Save'}</button>
+              <button class="btn btn-navy" onclick="saveExamFolder()">${isSo?'Abuur':'Create'}</button>
             </div>
           </div>
-        </div>`;
+        </div>
+      `;
     }
 
-    function saveNewStudent() {
-      const name = document.getElementById('newStName').value.trim();
-      const phone = document.getElementById('newStPhone').value.trim();
+    function saveExamFolder() {
+      const name = document.getElementById('newFolderName').value.trim();
       if (!name) return;
-      const num = 101 + state.students.length;
-      const id = 'IFT-' + num;
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      state.students.push({ id, name, classId: 'class_form1a', className: 'Form 1A', code, phone });
-      state.attendance[id] = 'P';
+      state.examFolders.unshift({ id: 'folder_' + Date.now(), name, type: 'TERM', year: '2025-2026' });
       closeModal();
-      showToast(state.lang === 'so' ? `Ardayga ${id} waa la keydiyay!` : `Student ${id} saved!`);
+      showToast(state.lang === 'so' ? 'Folder-ka waa la abuuray!' : 'Exam folder created!');
       render();
     }
 
     function toggleExamPublish(id) {
       const ex = state.exams.find(e => e.id === id);
       ex.status = ex.status === 'PUBLISHED' ? 'LOCKED' : 'PUBLISHED';
-      showToast(state.lang === 'so' ? `Xaaladda: ${ex.status}` : `Exam status: ${ex.status}`);
+      showToast(state.lang === 'so' ? `Xaaladda: ${ex.status}` : `Exam: ${ex.status}`);
       render();
     }
 
-    function payFee(id) {
-      const f = state.fees.find(x => x.id === id);
-      f.paid = f.amount;
-      f.status = 'PAID';
-      f.receipt = 'RCP-' + Math.floor(10000 + Math.random() * 89999);
-      showToast(state.lang === 'so' ? 'Lacag bixinta waa la keydiyay!' : 'Payment recorded!');
-      render();
+    // =========================================================
+    // TEACHER LOGIC
+    // =========================================================
+    function onTeacherSelectClass(classId) {
+      if (state.unlockedClasses.includes(classId)) {
+        state.selectedClassId = classId;
+        render();
+      } else {
+        state.selectedClassId = classId;
+        render();
+      }
+    }
+
+    function renderTeacherPasswordGate(body, isSo) {
+      const targetClass = state.classes.find(c => c.id === state.selectedClassId) || state.classes[0];
+      body.innerHTML = `
+        <div class="card">
+          <div class="card-title"><span>🔒 ${isSo?'Geli Password-ka Fasalka':'Class Password Required'}</span></div>
+          <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">
+            ${isSo?'Dooro fasalkaaga oo geli password-kiisa si aad u gasho.':'Select your class and enter its password to unlock.'}
+          </p>
+          <select class="select" id="gateClassId" onchange="state.selectedClassId=this.value;render();">
+            ${state.classes.map(c => `<option value="${c.id}" ${c.id===targetClass.id?'selected':''}>${c.name} (${c.teacherName})</option>`).join('')}
+          </select>
+          <input class="input" type="password" id="gateClassPw" placeholder="${isSo?'Password-ka fasalka (tusaale 4819)':'Class Password (e.g. 4819)'}" value="${targetClass.code}" />
+          <button class="btn btn-navy btn-full" onclick="verifyClassPassword()">${isSo?'Fur Fasalka':'Unlock Class'}</button>
+        </div>
+      `;
+    }
+
+    function verifyClassPassword() {
+      const cid = document.getElementById('gateClassId').value;
+      const pw = document.getElementById('gateClassPw').value.trim();
+      const cls = state.classes.find(c => c.id === cid);
+      if (cls && cls.code === pw) {
+        if (!state.unlockedClasses.includes(cid)) state.unlockedClasses.push(cid);
+        state.selectedClassId = cid;
+        state.tab = 'DASHBOARD';
+        showToast(state.lang === 'so' ? `${cls.name} waa la furay!` : `${cls.name} unlocked!`);
+        render();
+      } else {
+        showToast(state.lang === 'so' ? 'Password-ka fasalku waa khalad!' : 'Incorrect class password!');
+      }
     }
 
     function renderTeacherTab(body, isSo) {
+      const cls = state.classes.find(c => c.id === state.selectedClassId);
+      const stList = state.students.filter(s => s.classId === cls.id);
+      const exList = state.exams.filter(e => e.classId === cls.id);
+      const feeList = state.feeFolders.filter(f => f.classId === cls.id);
+
       if (state.tab === 'DASHBOARD') {
         body.innerHTML = `
           <div class="card" style="background:var(--navy);color:#fff;">
-            <div style="font-size:11px;color:#90CDF4;">${isSo?'Fasalka La Doortay':'Assigned Class'}</div>
-            <div style="font-size:18px;font-weight:800;">Form 1A • 2025-2026</div>
-            <div style="font-size:12px;margin-top:6px;">${state.students.length} ${isSo?'Arday':'Students'} • ${state.exams.length} ${isSo?'Imtixaan':'Exams'}</div>
+            <div style="font-size:11px;color:#90CDF4;">${isSo?'Fasalka Furan':'Unlocked Class'}</div>
+            <div style="font-size:18px;font-weight:800;">${cls.name} • ${cls.year}</div>
+            <div style="font-size:12px;margin-top:6px;">${stList.length} ${isSo?'Arday':'Students'} • ${exList.length} ${isSo?'Imtixaan':'Exams'}</div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button class="btn btn-green" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiriska':'Attendance'}</button>
-            <button class="btn btn-blue" onclick="setTab('MARKS')">${isSo?'Geli Buundo':'Enter Marks'}</button>
-            <button class="btn btn-navy" onclick="setTab('HOMEWORK')">${isSo?'Shaqo-Guri':'Homework'}</button>
-            <button class="btn btn-amber" onclick="openAddStudentModal()">+ ${isSo?'Arday':'Student'}</button>
+            <button class="btn btn-green" onclick="setTab('STUDENTS')">${isSo?'Ardayda':'Students'}</button>
+            <button class="btn btn-blue" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiriska':'Attendance'}</button>
+            <button class="btn btn-navy" onclick="setTab('EXAMS')">${isSo?'Imtixaannada':'Exams'}</button>
+            <button class="btn btn-amber" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
           </div>
         `;
+      } else if (state.tab === 'STUDENTS') {
+        body.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <strong style="font-size:14px;color:var(--navy)">${isSo?'Ardayda':'Students'} (${stList.length})</strong>
+            <button class="btn btn-navy btn-sm" onclick="openStudentModal(null)">+ ${isSo?'Arday Cusub':'Add Student'}</button>
+          </div>
+          ${stList.map(s => `
+            <div class="card">
+              <div style="display:flex;align-items:center;gap:10px;">
+                ${avatarHtml(s)}
+                <div style="flex:1;">
+                  <div style="font-weight:800;font-size:13px;color:var(--navy);">${s.name}</div>
+                  <div style="font-size:11px;color:var(--muted);">ID: ${s.id} • Code: <strong>${s.code}</strong></div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="openStudentModal('${s.id}')">${isSo?'Beddel':'Edit'}</button>
+              </div>
+            </div>
+          `).join('')}
+        `;
       } else if (state.tab === 'ATTENDANCE') {
-        const pCount = Object.values(state.attendance).filter(v => v === 'P').length;
-        const pct = Math.round((pCount / state.students.length) * 100);
+        const pCount = stList.filter(s => (state.attendanceToday[s.id] || 'P') === 'P').length;
         body.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <strong style="font-size:13px;">${isSo?'Xaadiriska':'Attendance'} (${pct}%)</strong>
-            <button class="btn btn-green btn-sm" onclick="markAllPresent()">${isSo?'Dhammaan Jooga':'Mark All Present'}</button>
+            <strong style="font-size:13px;">${isSo?'Xaadiriska Maanta':'Today Attendance'} (${pCount}/${stList.length})</strong>
+            <button class="btn btn-green btn-sm" onclick="markAllPresent('${cls.id}')">${isSo?'Dhammaan Jooga':'Mark All P'}</button>
           </div>
-          ${state.students.map(s => {
-            const st = state.attendance[s.id] || 'P';
-            return `
-              <div class="card" style="padding:10px;margin-bottom:7px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div><div style="font-size:13px;font-weight:700;">${s.name}</div><div style="font-size:10px;color:var(--muted)">${s.id}</div></div>
+          <div class="card">
+            ${stList.map(s => {
+              const st = state.attendanceToday[s.id] || 'P';
+              return `
+                <div class="row-item">
+                  <span><strong>${s.name}</strong></span>
                   <div class="att-btns">
                     ${['P','A','L','E'].map(opt => `<button class="att-btn ${st===opt?'active-'+opt:''}" onclick="setAtt('${s.id}','${opt}')">${opt}</button>`).join('')}
                   </div>
                 </div>
-              </div>`;
-          }).join('')}
-        `;
-      } else if (state.tab === 'MARKS') {
-        const ex = state.exams[0];
-        const ranks = computeCompetitionRanks(ex.marks, ex.max);
-        body.innerHTML = `
-          <div class="card">
-            <div class="card-title"><span>${ex.name}</span><span class="badge badge-blue">Max ${ex.max}</span></div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
-              ${isSo?'Beddel buundada si aad u aragto Competition Ranking (1, 1, 3, 4):':'Edit any mark to test live Competition Ranking (1, 1, 3, 4):'}
-            </p>
-            ${ranks.map(r => `
-              <div class="row-item">
-                <span><strong>#${r.pos}</strong> ${r.name} <span class="badge badge-green">${r.grade}</span></span>
-                <input type="number" style="width:65px;padding:4px;border:1px solid #CBD5E1;border-radius:6px;text-align:center;font-weight:700;"
-                  value="${r.score}" onchange="updateMark('${ex.id}','${r.sid}',this.value)" />
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         `;
-      } else if (state.tab === 'HOMEWORK') {
+      } else if (state.tab === 'EXAMS') {
         body.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <strong style="font-size:14px;">${isSo?'Shaqo-Guri':'Homework'}</strong>
-            <button class="btn btn-navy btn-sm" onclick="addSampleHomework()">+ ${isSo?'Ku dar':'Add HW'}</button>
+            <strong style="font-size:14px;color:var(--navy)">${isSo?'Imtixaannada':'Exams'} (${exList.length})</strong>
+            <button class="btn btn-navy btn-sm" onclick="openCreateExamModal()">+ ${isSo?'Imtixaan':'New Exam'}</button>
           </div>
-          ${state.homework.map(h => `
-            <div class="card">
-              <div class="card-title"><span>${h.title}</span><span class="badge badge-blue">${h.subject}</span></div>
-              <div style="font-size:11px;color:var(--muted);">Due: ${h.due} • ${h.teacher}</div>
-            </div>
-          `).join('')}
+          ${exList.map(ex => {
+            const folder = state.examFolders.find(f => f.id === ex.folderId);
+            return `
+              <div class="card">
+                <div class="card-title"><span>${ex.name}</span><span class="badge ${ex.status==='PUBLISHED'?'badge-green':'badge-amber'}">${ex.status}</span></div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">📁 ${folder ? folder.name : ''}</div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-navy btn-sm" style="flex:1;" onclick="openMarksEntryModal('${ex.id}')">${isSo?'Geli Buundo & Qiimeyn':'Marks & Evaluation'}</button>
+                  <button class="btn btn-green btn-sm" style="flex:1;" onclick="openAllReportCardsModal('${ex.id}')">${isSo?'Kaarka Dhammaan (All)':'All Report Cards'}</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        `;
+      } else if (state.tab === 'FEES') {
+        body.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <strong style="font-size:14px;color:var(--navy)">${isSo?'Folder-rada Fiiga':'Fee Folders'}</strong>
+            <button class="btn btn-navy btn-sm" onclick="openCreateFeeModal()">+ ${isSo?'Fiiga Cusub':'New Fee Folder'}</button>
+          </div>
+          ${feeList.map(ff => {
+            const paid = stList.filter(s => ff.payments[s.id]?.status === 'PAID').length;
+            return `
+              <div class="card" style="cursor:pointer;" onclick="openTeacherFeeFolderModal('${ff.id}')">
+                <div class="card-title"><span>📁 ${ff.title}</span><span class="badge ${ff.published?'badge-green':'badge-amber'}">${ff.published?(isSo?'La Gudbiyay':'Submitted'):(isSo?'Cusub':'Draft')}</span></div>
+                <div style="font-size:11.5px;color:var(--muted);">$${ff.amount} • ${paid}/${stList.length} ${isSo?'Bixiyay':'Paid'} • ${isSo?'Taabo si aad u furto':'Tap to open'}</div>
+              </div>
+            `;
+          }).join('')}
         `;
       }
     }
 
-    function setAtt(sid, opt) {
-      state.attendance[sid] = opt;
-      render();
+    function openStudentModal(studentId) {
+      const isSo = state.lang === 'so';
+      const existing = studentId ? state.students.find(s => s.id === studentId) : null;
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${existing?(isSo?'Wax ka beddel Ardayga':'Edit Student'):(isSo?'Diiwaangeli Arday':'Register Student')}</div>
+            <input class="input" id="stName" placeholder="${isSo?'Magaca oo buuxa':'Full Name'}" value="${existing?existing.name:''}" />
+            <input class="input" id="stPhone" placeholder="${isSo?'Telefoonka Waalidka':'Parent Phone'}" value="${existing?existing.phone:'+252 61 '}" />
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${isSo?'Sawirka Ardayga (Ikhtiyaari - qasab ma aha):':'Student Photo (Optional - can skip):'}</label>
+            <input class="input" type="file" id="stPhotoFile" accept="image/*" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-navy" onclick="saveStudent('${studentId || ''}')">${isSo?'Keydi':'Save'}</button>
+            </div>
+          </div>
+        </div>
+      `;
     }
-    function markAllPresent() {
-      state.students.forEach(s => state.attendance[s.id] = 'P');
+
+    function saveStudent(studentId) {
+      const name = document.getElementById('stName').value.trim();
+      const phone = document.getElementById('stPhone').value.trim();
+      if (!name) return;
+      const cls = state.classes.find(c => c.id === state.selectedClassId);
+      const fileInput = document.getElementById('stPhotoFile');
+      const finish = (photoData) => {
+        if (studentId) {
+          const st = state.students.find(s => s.id === studentId);
+          st.name = name; st.phone = phone;
+          if (photoData) st.photo = photoData;
+        } else {
+          const id = 'IFT-' + (101 + state.students.length);
+          const code = String(Math.floor(100000 + Math.random() * 900000));
+          state.students.push({ id, name, classId: cls.id, className: cls.name, code, phone, photo: photoData || '' });
+          state.attendanceToday[id] = 'P';
+        }
+        closeModal();
+        showToast(state.lang === 'so' ? 'Ardayga waa la keydiyay!' : 'Student saved!');
+        render();
+      };
+      if (fileInput.files && fileInput.files[0]) {
+        const r = new FileReader();
+        r.onload = e => finish(e.target.result);
+        r.readAsDataURL(fileInput.files[0]);
+      } else finish('');
+    }
+
+    function setAtt(sid, opt) { state.attendanceToday[sid] = opt; render(); }
+    function markAllPresent(classId) {
+      state.students.filter(s => s.classId === classId).forEach(s => state.attendanceToday[s.id] = 'P');
       showToast(state.lang === 'so' ? 'Dhammaan waa jooga!' : 'All marked present!');
       render();
     }
-    function updateMark(exId, sid, val) {
-      const ex = state.exams.find(e => e.id === exId);
-      const num = Math.max(0, Math.min(ex.max, Number(val) || 0));
-      ex.marks[sid] = num;
-      showToast(state.lang === 'so' ? 'Kaalmaha dib baa loo xisaabiyay!' : 'Rankings recalculated!');
-      render();
+
+    function openCreateExamModal() {
+      const isSo = state.lang === 'so';
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${isSo?'Abuur Imtixaan':'Create Exam'}</div>
+            <label style="font-size:11px;color:var(--muted);">${isSo?'Dooro Folder-ka Maamulka:':'Select Admin Exam Folder:'}</label>
+            <select class="select" id="exFolderId">
+              ${state.examFolders.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
+            </select>
+            <input class="input" id="exName" placeholder="${isSo?'Magaca Imtixaanka':'Exam Title'}" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-navy" onclick="saveNewExam()">${isSo?'Keydi':'Create'}</button>
+            </div>
+          </div>
+        </div>
+      `;
     }
-    function addSampleHomework() {
-      state.homework.unshift({
-        id: 'H' + Date.now(),
-        classId: 'class_form1a',
-        subject: 'Somali',
-        title: state.lang === 'so' ? 'Qoraal Curis: Muhiimadda Waxbarashada' : 'Essay: Importance of Education',
-        due: '2026-11-18',
-        teacher: 'Ustaad Maryam Jama'
+
+    function saveNewExam() {
+      const folderId = document.getElementById('exFolderId').value;
+      const name = document.getElementById('exName').value.trim();
+      if (!name) return;
+      const cls = state.classes.find(c => c.id === state.selectedClassId);
+      state.exams.unshift({
+        id: 'EX_' + Date.now(),
+        folderId,
+        name,
+        classId: cls.id,
+        className: cls.name,
+        status: 'PUBLISHED',
+        subjects: ['Somali', 'English', 'Mathematics', 'Science', 'Islamic Studies'],
+        maxPerSub: 100,
+        marks: {},
+        remarks: {}
       });
-      showToast(state.lang === 'so' ? 'Shaqo-guri waa la diray!' : 'Homework posted!');
+      closeModal();
+      showToast(state.lang === 'so' ? 'Imtixaanka waa la abuuray!' : 'Exam created!');
       render();
     }
 
+    function openMarksEntryModal(examId) {
+      const isSo = state.lang === 'so';
+      const ex = state.exams.find(e => e.id === examId);
+      const stList = state.students.filter(s => s.classId === ex.classId);
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title"><span>${ex.name}</span><button class="btn btn-outline btn-sm" onclick="closeModal()">✕</button></div>
+            ${stList.map(s => {
+              const mk = ex.marks[s.id] || {};
+              const rm = (ex.remarks && ex.remarks[s.id]) || '';
+              return `
+                <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                  <strong style="font-size:12.5px;color:var(--navy);">${s.name} (${s.id})</strong>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
+                    ${ex.subjects.map(sub => `
+                      <div style="font-size:11px;">
+                        <label>${sub}</label>
+                        <input class="input" style="margin-bottom:2px;padding:5px;" type="number" max="100" min="0"
+                          value="${mk[sub] ?? 0}" onchange="updateStudentMark('${ex.id}','${s.id}','${sub}',this.value)" />
+                      </div>
+                    `).join('')}
+                  </div>
+                  <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-top:4px;">${isSo?'Qiimeynta & Waxa uu u qalmo:':'Teacher Evaluation Remark:'}</label>
+                  <input class="input" style="margin-bottom:0;" value="${rm}" placeholder="${isSo?'Qor waxa uu ardaygu u qalmo...':'Write what the student deserves...'}"
+                    onchange="updateStudentRemark('${ex.id}','${s.id}',this.value)" />
+                </div>
+              `;
+            }).join('')}
+            <button class="btn btn-green btn-full" onclick="closeModal();render();">${isSo?'Keydi & Xir':'Save & Done'}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateStudentMark(examId, sid, sub, val) {
+      const ex = state.exams.find(e => e.id === examId);
+      if (!ex.marks[sid]) ex.marks[sid] = {};
+      ex.marks[sid][sub] = Math.max(0, Math.min(ex.maxPerSub, Number(val) || 0));
+    }
+
+    function updateStudentRemark(examId, sid, val) {
+      const ex = state.exams.find(e => e.id === examId);
+      if (!ex.remarks) ex.remarks = {};
+      ex.remarks[sid] = val;
+    }
+
+    function openAllReportCardsModal(examId) {
+      const isSo = state.lang === 'so';
+      const ex = state.exams.find(e => e.id === examId);
+      const rows = computeExamResults(ex);
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">
+              <span>${isSo?'Kaarka Natiijada Dhammaan Ardayda':'All Students Report Cards'} (${rows.length})</span>
+              <button class="btn btn-outline btn-sm" onclick="closeModal()">✕</button>
+            </div>
+            ${rows.map(r => buildReportCardHtml(ex, r, isSo)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function openCreateFeeModal() {
+      const isSo = state.lang === 'so';
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${isSo?'Folder Fii Cusub':'Create Fee Folder'}</div>
+            <input class="input" id="feeTitle" placeholder="${isSo?'Magaca Fiiga (tusaale Bisha Diseembar)':'Fee Title'}" />
+            <input class="input" id="feeAmount" type="number" placeholder="${isSo?'Qaddarka ($)':'Amount ($)'}" value="20" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-navy" onclick="saveNewFeeFolder()">${isSo?'Abuur':'Create'}</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveNewFeeFolder() {
+      const title = document.getElementById('feeTitle').value.trim();
+      const amount = Number(document.getElementById('feeAmount').value) || 20;
+      if (!title) return;
+      const cls = state.classes.find(c => c.id === state.selectedClassId);
+      const payments = {};
+      state.students.filter(s => s.classId === cls.id).forEach(s => {
+        payments[s.id] = { status: 'UNPAID', receipt: '', date: '' };
+      });
+      state.feeFolders.unshift({
+        id: 'fee_' + Date.now(),
+        title,
+        classId: cls.id,
+        amount,
+        dueDate: '2026-12-20',
+        published: false,
+        payments
+      });
+      closeModal();
+      showToast(state.lang === 'so' ? 'Folder-ka fiiga waa la abuuray!' : 'Fee folder created!');
+      render();
+    }
+
+    function openTeacherFeeFolderModal(folderId) {
+      const isSo = state.lang === 'so';
+      const ff = state.feeFolders.find(f => f.id === folderId);
+      const stList = state.students.filter(s => s.classId === ff.classId);
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">
+              <span>📁 ${ff.title}</span>
+              <button class="btn btn-blue btn-sm" onclick="submitFeeFolderToParents('${ff.id}')">
+                ${isSo ? 'Gudbi →' : 'Submit →'}
+              </button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+              $${ff.amount} • ${ff.published ? (isSo?'Qolka Waalidiinta waa loo gudbiyay':'Submitted to Parent Rooms') : (isSo?'Taabo Gudbi si waalidiintu u arkaan':'Tap Submit to notify all Parents')}
+            </div>
+            ${stList.map(s => {
+              const p = ff.payments[s.id] || { status: 'UNPAID', receipt: '' };
+              return `
+                <div class="row-item">
+                  <div>
+                    <strong>${s.name}</strong>
+                    <div style="font-size:10.5px;color:var(--muted);">${s.id} ${p.receipt ? '• ' + p.receipt : ''}</div>
+                  </div>
+                  ${p.status === 'PAID'
+                    ? `<span class="badge badge-green">✓ PAID</span>`
+                    : `<button class="btn btn-green btn-sm" onclick="markStudentFeePaid('${ff.id}','${s.id}')">${isSo?'Bixiyay':'Paid'}</button>`}
+                </div>
+              `;
+            }).join('')}
+            <button class="btn btn-outline btn-full" style="margin-top:10px;" onclick="closeModal()">${isSo?'Xir':'Close'}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function submitFeeFolderToParents(folderId) {
+      const ff = state.feeFolders.find(f => f.id === folderId);
+      ff.published = true;
+      state.students.filter(s => s.classId === ff.classId).forEach(s => {
+        state.parentNotifications.unshift({
+          studentId: s.id,
+          title: state.lang === 'so' ? `Fii Cusub: ${ff.title}` : `New Fee: ${ff.title}`,
+          msg: state.lang === 'so' ? `Qaddarka: $${ff.amount} • Xilliga: ${ff.dueDate}` : `Amount: $${ff.amount} • Due: ${ff.dueDate}`,
+          date: '2026-11-13',
+          receipt: ''
+        });
+      });
+      showToast(state.lang === 'so' ? 'Dhammaan qolalka waalidiinta waa loo gudbiyay!' : 'Submitted to all Parent Rooms!');
+      openTeacherFeeFolderModal(folderId);
+      render();
+    }
+
+    function markStudentFeePaid(folderId, studentId) {
+      const ff = state.feeFolders.find(f => f.id === folderId);
+      const rcp = 'RCP-' + Math.floor(10000 + Math.random() * 89999);
+      ff.payments[studentId] = { status: 'PAID', receipt: rcp, date: '2026-11-13' };
+      state.parentNotifications.unshift({
+        studentId,
+        title: (state.lang === 'so' ? 'Rasiidka Fiiga • ' : 'Fee Receipt • ') + rcp,
+        msg: state.lang === 'so'
+          ? `${ff.title} ($${ff.amount}) waa la bixiyay. Lambarka rasiidka: ${rcp}`
+          : `${ff.title} ($${ff.amount}) paid. Receipt: ${rcp}`,
+        date: '2026-11-13',
+        receipt: rcp
+      });
+      showToast(state.lang === 'so' ? `Rasiid (${rcp}) ayaa u dhacay waalidka!` : `Receipt (${rcp}) sent to Parent!`);
+      openTeacherFeeFolderModal(folderId);
+    }
+
+    // =========================================================
+    // PARENT LOGIC
+    // =========================================================
     function renderParentTab(body, isSo) {
       const child = state.students.find(s => s.id === state.selectedChildId) || state.students[0];
       const chipsHtml = `
@@ -714,49 +1486,91 @@
           <strong style="font-size:12px;color:var(--navy)">${isSo?'Carruurtaada':'Linked Children'}</strong>
           <button class="btn btn-green btn-sm" onclick="openLinkChildModal()">+ ${isSo?'Ku Dar Arday':'Add Child'}</button>
         </div>
-        <div class="chips">
+        <div class="chips" style="margin-bottom:10px;">
           ${state.linkedChildren.map(cid => {
             const st = state.students.find(s => s.id === cid);
             if (!st) return '';
-            return `<button class="chip ${st.id===child.id?'active':''}" onclick="state.selectedChildId='${st.id}';render();">${st.name} (${st.id})</button>`;
+            return `<button class="chip ${st.id===child.id?'active':''}" onclick="state.selectedChildId='${st.id}';render();">${st.name}</button>`;
           }).join('')}
         </div>
       `;
 
       let content = '';
       if (state.tab === 'RESULTS') {
-        const pubExams = state.exams.filter(e => e.status === 'PUBLISHED');
+        const pubExams = state.exams.filter(e => e.status === 'PUBLISHED' && e.classId === child.classId);
         content = pubExams.length === 0
           ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Weli lama daabicin imtixaan.':'No published exams yet.'}</p></div>`
           : pubExams.map(ex => {
-              const ranks = computeCompetitionRanks(ex.marks, ex.max);
-              const myRes = ranks.find(r => r.sid === child.id);
-              return `
-                <div class="card">
-                  <div class="card-title"><span>${ex.name}</span><span class="badge badge-green">PUBLISHED</span></div>
-                  <div class="stat-grid" style="margin-top:8px;margin-bottom:4px;">
-                    <div class="stat-box" style="background:var(--blue-surface)"><div class="stat-label">${isSo?'Wadarta':'Score'}</div><div class="stat-val" style="font-size:15px">${myRes.score}/${ex.max}</div></div>
-                    <div class="stat-box" style="background:var(--blue-surface)"><div class="stat-label">${isSo?'Kaalinta & Grade':'Rank & Grade'}</div><div class="stat-val" style="font-size:15px;color:var(--green)">#${myRes.pos} • ${myRes.grade}</div></div>
-                  </div>
-                </div>`;
+              const rows = computeExamResults(ex);
+              const myRow = rows.find(r => r.student.id === child.id);
+              return myRow ? buildReportCardHtml(ex, myRow, isSo) : '';
             }).join('');
       } else if (state.tab === 'ATTENDANCE') {
-        const st = state.attendance[child.id] || 'P';
-        const label = st === 'P' ? (isSo?'Jooga':'PRESENT') : st === 'A' ? (isSo?'Maqan':'ABSENT') : st === 'L' ? (isSo?'Soo Daahay':'LATE') : (isSo?'Cudurdaar':'EXCUSED');
+        const groups = { PRESENT: [], ABSENT: [], LATE: [], EXCUSED: [] };
+        state.attendanceHistory.forEach(h => {
+          const code = h.records[child.id];
+          const dayLabel = isSo ? h.daySo : h.dayEn;
+          const [y, m, d] = h.date.split('-');
+          const formatted = `${dayLabel} ${d}/${m}/${y}`;
+          if (code === 'P') groups.PRESENT.push(formatted);
+          else if (code === 'A') groups.ABSENT.push(formatted);
+          else if (code === 'L') groups.LATE.push(formatted);
+          else if (code === 'E') groups.EXCUSED.push(formatted);
+        });
+        const sel = state.selectedAttFilter;
+        const selectedDates = groups[sel] || [];
         content = `
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+            ${isSo ? 'Taabo mid ka mid ah si aad u aragto maalinta & taariikhda:' : 'Tap any stat to view day & date:'}
+          </div>
+          <div class="stat-grid">
+            <div class="stat-box ${sel==='PRESENT'?'selected':''}" onclick="state.selectedAttFilter='PRESENT';render();">
+              <div class="stat-label"><span>${isSo?'Jooga':'Present'}</span></div>
+              <div class="stat-val" style="color:var(--green)">${groups.PRESENT.length}</div>
+            </div>
+            <div class="stat-box ${sel==='ABSENT'?'selected':''}" onclick="state.selectedAttFilter='ABSENT';render();">
+              <div class="stat-label"><span>${isSo?'Maqan':'Absent'}</span></div>
+              <div class="stat-val" style="color:var(--red)">${groups.ABSENT.length}</div>
+            </div>
+            <div class="stat-box ${sel==='LATE'?'selected':''}" onclick="state.selectedAttFilter='LATE';render();">
+              <div class="stat-label"><span>${isSo?'Soo Daahay':'Late'}</span></div>
+              <div class="stat-val" style="color:var(--amber)">${groups.LATE.length}</div>
+            </div>
+            <div class="stat-box ${sel==='EXCUSED'?'selected':''}" onclick="state.selectedAttFilter='EXCUSED';render();">
+              <div class="stat-label"><span>${isSo?'Cudurdaar':'Excused'}</span></div>
+              <div class="stat-val" style="color:var(--blue)">${groups.EXCUSED.length}</div>
+            </div>
+          </div>
           <div class="card">
-            <div class="card-title"><span>${isSo?'Xaadiriska Maanta':'Today Attendance'}</span><span class="badge ${st==='P'?'badge-green':'badge-amber'}">${label}</span></div>
-            <div style="font-size:12px;color:var(--muted);">${child.name} • ${child.className}</div>
-          </div>`;
+            <div class="card-title"><span>${sel} (${selectedDates.length})</span></div>
+            ${selectedDates.length === 0
+              ? `<p style="font-size:12px;color:var(--muted)">${isSo?'Ma jiraan diiwaan noocan ah.':'No dates recorded.'}</p>`
+              : selectedDates.map((dt, idx) => `<div class="row-item"><span><strong>${idx+1}.</strong> ${dt}</span></div>`).join('')}
+          </div>
+        `;
       } else if (state.tab === 'FEES') {
-        const myFees = state.fees.filter(f => f.studentId === child.id);
-        content = myFees.length === 0
-          ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Wax fi ah laguma laha.':'No fees recorded.'}</p></div>`
-          : myFees.map(f => `
+        const myFees = state.feeFolders.filter(ff => ff.published && ff.classId === child.classId);
+        const myNotifs = state.parentNotifications.filter(n => n.studentId === child.id);
+        content = `
+          ${myFees.map(ff => {
+            const p = ff.payments[child.id] || { status: 'UNPAID', receipt: '' };
+            return `
               <div class="card">
-                <div class="card-title"><span>${f.title}</span><span class="badge ${f.status==='PAID'?'badge-green':'badge-red'}">${f.status}</span></div>
-                <div style="font-size:12px;color:var(--muted);">$${f.paid} / $${f.amount} ${f.receipt ? '• ' + f.receipt : ''}</div>
-              </div>`).join('');
+                <div class="card-title"><span>${ff.title}</span><span class="badge ${p.status==='PAID'?'badge-green':'badge-red'}">${p.status}</span></div>
+                <div style="font-size:11.5px;color:var(--muted);">$${ff.amount} • Due: ${ff.dueDate} ${p.receipt ? '• <strong>' + p.receipt + '</strong>' : ''}</div>
+              </div>
+            `;
+          }).join('')}
+          <strong style="font-size:12.5px;color:var(--navy);display:block;margin:8px 0 6px;">${isSo?'Ogeysiisyada & Rasiidyada Fiiga':'Fee Notifications & Receipts'}</strong>
+          ${myNotifs.length === 0
+            ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Weli fariin fiiga ma soo dhicin.':'No fee notifications yet.'}</p></div>`
+            : myNotifs.map(n => `
+              <div class="card" style="border-left:4px solid ${n.receipt?'var(--green)':'var(--blue)'};">
+                <div class="card-title"><span>${n.title}</span><span style="font-size:10px;color:var(--muted)">${n.date}</span></div>
+                <div style="font-size:11.5px;">${n.msg}</div>
+              </div>
+            `).join('')}
+        `;
       } else if (state.tab === 'REMARKS') {
         const myRemarks = state.remarks.filter(r => r.studentId === child.id);
         content = myRemarks.length === 0
@@ -766,9 +1580,9 @@
                 <div class="card-title"><span>${r.cat}</span><span style="font-size:10px;color:var(--muted)">${r.date}</span></div>
                 <div style="font-size:12px;margin-bottom:4px;">${r.msg}</div>
                 <div style="font-size:10px;color:var(--muted)">— ${r.teacher}</div>
-              </div>`).join('');
+              </div>
+            `).join('');
       }
-
       body.innerHTML = chipsHtml + content;
     }
 
@@ -777,22 +1591,23 @@
       document.getElementById('modalContainer').innerHTML = `
         <div class="modal-overlay" onclick="closeModal()">
           <div class="modal-box" onclick="event.stopPropagation()">
-            <div class="card-title">${isSo?'Ku Xir Arday Cusub':'Link Student to Parent Room'}</div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">${isSo?'Tijaabo: ID = IFT-102, Code = 831942':'Demo: ID = IFT-102, Code = 831942'}</p>
-            <input class="input" id="linkStId" placeholder="Student ID (e.g. IFT-102)" value="IFT-102" />
-            <input class="input" id="linkStCode" placeholder="Linking Code (e.g. 831942)" value="831942" />
+            <div class="card-title">${isSo?'Ku Dar Arday':'Link Student'}</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Demo: IFT-102 / 831942</p>
+            <input class="input" id="linkStId" value="IFT-102" />
+            <input class="input" id="linkStCode" value="831942" />
             <div style="display:flex;gap:8px;justify-content:flex-end;">
               <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
-              <button class="btn btn-green" onclick="confirmLinkChild()">${isSo?'Xiriiri':'Link Student'}</button>
+              <button class="btn btn-green" onclick="confirmLinkChild()">${isSo?'Xiriiri':'Link'}</button>
             </div>
           </div>
-        </div>`;
+        </div>
+      `;
     }
 
     function confirmLinkChild() {
-      const id = document.getElementById('linkStId').value.trim();
+      const id = document.getElementById('linkStId').value.trim().toUpperCase();
       const code = document.getElementById('linkStCode').value.trim();
-      const found = state.students.find(s => s.id.toUpperCase() === id.toUpperCase() && s.code === code);
+      const found = state.students.find(s => s.id === id && s.code === code);
       if (found) {
         if (!state.linkedChildren.includes(found.id)) state.linkedChildren.push(found.id);
         state.selectedChildId = found.id;

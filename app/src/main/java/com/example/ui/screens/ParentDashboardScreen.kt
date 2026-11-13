@@ -1,8 +1,14 @@
 package com.example.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,11 +23,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.models.*
@@ -50,7 +59,6 @@ fun ParentDashboardScreen(
     val allFeePayments by viewModel.feePayments.collectAsState()
 
     var showAddChildDialog by remember { mutableStateOf(false) }
-    // ONLY 4 tabs: RESULTS, ATTENDANCE, FEES, REMARKS (Homework & Timetable completely removed)
     var selectedTab by remember { mutableStateOf("RESULTS") }
 
     Scaffold(
@@ -71,61 +79,80 @@ fun ParentDashboardScreen(
                 .padding(padding)
                 .background(BackgroundLight)
         ) {
-            // Children Selector Bar & Add Child Button
+            // Children Selector Bar & Colorful Add Child Button
             Surface(
                 color = Color.White,
-                tonalElevation = 2.dp,
+                shadowElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(BlueSurface.copy(alpha = 0.45f), Color.White)
+                            )
+                        )
+                        .padding(14.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = if (lang == "so") "Carruurtaada:" else "Your Children:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = NavyPrimary
-                        )
-
-                        Button(
-                            onClick = { showAddChildDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier
-                                .height(34.dp)
-                                .testTag("parent_add_child_button")
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(AppStrings.get("add_child", lang), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(9.dp))
+                                    .background(Brush.linearGradient(GradientEmerald)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.FamilyRestroom, contentDescription = null, tint = Color.White, modifier = Modifier.size(17.dp))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (lang == "so") "Carruurtaada:" else "Your Children:",
+                                fontFamily = OutfitFontFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = NavyPrimary
+                            )
                         }
+
+                        VibrantGradientButton(
+                            text = AppStrings.get("add_child", lang),
+                            icon = Icons.Default.Add,
+                            gradient = GradientEmerald,
+                            height = 38.dp,
+                            fontSize = 12,
+                            onClick = { showAddChildDialog = true },
+                            modifier = Modifier.testTag("parent_add_child_button")
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     if (linkedStudents.isEmpty()) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEFCBF)),
-                            shape = RoundedCornerShape(8.dp),
+                        Surface(
+                            color = AmberBackground,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.5f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(10.dp),
+                                modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF744210))
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(Icons.Default.Info, contentDescription = null, tint = AmberDark)
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     if (lang == "so")
                                         "Weli ma aadan xiriirin arday. Fadlan riix '+ Ku Dar Arday' adigoo isticmaalaya ID-ga iyo Furaha Sirta ah."
                                     else
                                         "No children linked yet. Tap '+ Add Child' using the Student ID and Linking Code provided by school.",
                                     fontSize = 12.sp,
-                                    color = Color(0xFF744210)
+                                    color = Color(0xFF92400E),
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
@@ -134,35 +161,49 @@ fun ParentDashboardScreen(
                             items(linkedStudents) { student ->
                                 val isSelected = selectedChild?.studentId == student.studentId
                                 Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = if (isSelected) NavyPrimary else Color(0xFFF0F4F8),
-                                    border = if (isSelected) null else ButtonDefaults.outlinedButtonBorder,
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isSelected) Color.Transparent else Color.White,
+                                    shadowElevation = if (isSelected) 5.dp else 1.dp,
+                                    border = if (isSelected)
+                                        BorderStroke(1.5.dp, AmberWarning)
+                                    else
+                                        BorderStroke(1.dp, BorderLight),
                                     modifier = Modifier
+                                        .clip(RoundedCornerShape(14.dp))
                                         .clickable { viewModel.selectChild(student) }
                                         .testTag("child_selector_${student.studentId}")
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        modifier = Modifier
+                                            .then(
+                                                if (isSelected)
+                                                    Modifier.background(Brush.horizontalGradient(GradientRoyalBlue))
+                                                else
+                                                    Modifier.background(Color.White)
+                                            )
+                                            .padding(horizontal = 12.dp, vertical = 9.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         AvatarImage(
                                             photoBase64 = student.photoUrl,
                                             name = student.fullName,
-                                            size = 34.dp,
-                                            accentColor = if (isSelected) AmberWarning else NavyPrimary
+                                            size = 36.dp,
+                                            accentColor = if (isSelected) AmberWarning else NavyLight
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column {
                                             Text(
                                                 student.fullName,
+                                                fontFamily = OutfitFontFamily,
                                                 color = if (isSelected) Color.White else NavyPrimary,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp
                                             )
                                             Text(
                                                 student.className,
-                                                color = if (isSelected) BlueLight else Color.Gray,
-                                                fontSize = 11.sp
+                                                color = if (isSelected) Color(0xFFBAE6FD) else BlueSecondary,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold
                                             )
                                         }
                                     }
@@ -176,38 +217,48 @@ fun ParentDashboardScreen(
             if (selectedChild != null) {
                 val child = selectedChild!!
 
-                // 4 Focused Parent Tabs (Homework & Timetable Removed)
-                TabRow(
-                    selectedTabIndex = when (selectedTab) {
-                        "RESULTS" -> 0
-                        "ATTENDANCE" -> 1
-                        "FEES" -> 2
-                        "REMARKS" -> 3
-                        else -> 0
-                    },
-                    containerColor = Color.White,
-                    contentColor = NavyPrimary
+                // Vibrant Color-Coded 4-Tab Pill Strip (Results, Attendance, Fees, Remarks)
+                val tabs = listOf(
+                    Triple("RESULTS", AppStrings.get("exams", lang), NavyLight),
+                    Triple("ATTENDANCE", AppStrings.get("attendance", lang), GreenAccent),
+                    Triple("FEES", AppStrings.get("fees", lang), RedDanger),
+                    Triple("REMARKS", AppStrings.get("remarks", lang), VioletAccent)
+                )
+
+                Surface(
+                    color = Color.White,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Tab(
-                        selected = selectedTab == "RESULTS",
-                        onClick = { selectedTab = "RESULTS" },
-                        text = { Text(AppStrings.get("exams", lang), fontSize = 12.sp, maxLines = 1) }
-                    )
-                    Tab(
-                        selected = selectedTab == "ATTENDANCE",
-                        onClick = { selectedTab = "ATTENDANCE" },
-                        text = { Text(AppStrings.get("attendance", lang), fontSize = 12.sp, maxLines = 1) }
-                    )
-                    Tab(
-                        selected = selectedTab == "FEES",
-                        onClick = { selectedTab = "FEES" },
-                        text = { Text(AppStrings.get("fees", lang), fontSize = 12.sp, maxLines = 1) }
-                    )
-                    Tab(
-                        selected = selectedTab == "REMARKS",
-                        onClick = { selectedTab = "REMARKS" },
-                        text = { Text(AppStrings.get("remarks", lang), fontSize = 12.sp, maxLines = 1) }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        tabs.forEach { (key, label, tabColor) ->
+                            val isSelected = selectedTab == key
+                            Surface(
+                                onClick = { selectedTab = key },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) tabColor else tabColor.copy(alpha = 0.09f),
+                                border = BorderStroke(1.dp, if (isSelected) tabColor else tabColor.copy(alpha = 0.25f)),
+                                modifier = Modifier.weight(1f).height(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
+                                    Text(
+                                        text = label,
+                                        fontFamily = OutfitFontFamily,
+                                        color = if (isSelected) Color.White else tabColor,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Box(modifier = Modifier.weight(1f)) {
@@ -238,18 +289,14 @@ fun ParentDashboardScreen(
                     }
                 }
             } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        if (lang == "so") "Fadlan ku dar ama dooro ilmahaaga si aad u aragto xogta." else "Please link or select your child to view their records.",
-                        color = Color.Gray,
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(24.dp)
-                    )
-                }
+                EmptyStateCard(
+                    icon = Icons.Default.ChildCare,
+                    message = if (lang == "so")
+                        "Fadlan ku dar ama dooro ilmahaaga si aad u aragto xogta."
+                    else
+                        "Please link or select your child to view their records.",
+                    accentColor = GreenAccent
+                )
             }
         }
     }
@@ -284,27 +331,20 @@ fun ParentChildResultsTab(
     val resultsState by viewModel.repository.observeStudentResults(student.studentId).collectAsState(initial = emptyList())
 
     if (publishedExams.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-                Icon(Icons.Default.HourglassEmpty, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    if (lang == "so")
-                        "Ma jiraan natiijooyin imtixaan oo weli la daabacay. Maamulka dugsiga ayaa soo daabici doona."
-                    else
-                        "No examination results have been published yet. The school administration will publish them soon.",
-                    color = Color.Gray,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
+        EmptyStateCard(
+            icon = Icons.Default.HourglassEmpty,
+            message = if (lang == "so")
+                "Ma jiraan natiijooyin imtixaan oo weli la daabacay. Maamulka dugsiga ayaa soo daabici doona."
+            else
+                "No examination results have been published yet. The school administration will publish them soon.",
+            accentColor = NavyLight
+        )
     } else {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             items(publishedExams) { exam ->
                 val result = resultsState.firstOrNull { it.examId == exam.examId } ?: ExamResult(
@@ -331,9 +371,12 @@ fun ParentChildResultsTab(
                         lang = lang
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Button(
+                    VibrantGradientButton(
+                        text = AppStrings.get("download_pdf", lang),
+                        icon = Icons.Default.Download,
+                        gradient = GradientRoyalBlue,
                         onClick = {
                             val pdfFile = ReportCardPdfGenerator.generateReportCard(
                                 context = context,
@@ -349,16 +392,10 @@ fun ParentChildResultsTab(
                                 Toast.makeText(context, "Failed to create PDF", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("parent_download_report_card")
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(AppStrings.get("download_pdf", lang), fontWeight = FontWeight.Bold)
-                    }
+                    )
                 }
             }
         }
@@ -414,8 +451,8 @@ fun ParentChildAttendanceTab(
     val selectedColor = when (selectedStatusFilter) {
         "PRESENT" -> GreenAccent
         "ABSENT" -> RedDanger
-        "LATE" -> AmberWarning
-        "EXCUSED" -> Color.Gray
+        "LATE" -> AmberDark
+        "EXCUSED" -> BlueSecondary
         else -> NavyPrimary
     }
 
@@ -425,24 +462,31 @@ fun ParentChildAttendanceTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Today Status Banner
+        // Today Status Gradient Banner
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, GreenAccent.copy(alpha = 0.28f)),
+                elevation = CardDefaults.cardElevation(3.dp)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(listOf(GreenBackground, Color.White)))
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             if (lang == "so") "Xaadiriska Maanta (${formatDayAndDate(todayStr, lang)})" else "Today (${formatDayAndDate(todayStr, lang)})",
+                            fontFamily = OutfitFontFamily,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            color = NavyPrimary
                         )
-                        Text(student.fullName, fontSize = 12.sp, color = Color.Gray)
+                        Text(student.fullName, fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
                     }
                     StatusBadge(status = todayStatus, lang = lang)
                 }
@@ -450,12 +494,26 @@ fun ParentChildAttendanceTab(
         }
 
         item {
-            Text(
-                AppStrings.get("tap_to_view_dates", lang),
-                fontSize = 12.sp,
-                color = BlueSecondary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = BlueSurface,
+                border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.TouchApp, contentDescription = null, tint = BlueSecondary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        AppStrings.get("tap_to_view_dates", lang),
+                        fontSize = 12.sp,
+                        color = NavyPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
         // Clickable Summary Counters
@@ -497,7 +555,7 @@ fun ParentChildAttendanceTab(
                     title = AppStrings.get("excused", lang),
                     value = "${excusedDates.size}",
                     icon = Icons.Default.HelpOutline,
-                    color = Color.Gray,
+                    color = BlueSecondary,
                     modifier = Modifier.weight(1f).testTag("parent_att_excused"),
                     isSelected = selectedStatusFilter == "EXCUSED",
                     onClick = { selectedStatusFilter = if (selectedStatusFilter == "EXCUSED") null else "EXCUSED" }
@@ -506,69 +564,89 @@ fun ParentChildAttendanceTab(
         }
 
         // Numbered Day + Date Breakdown List when tapped!
-        if (selectedStatusFilter != null) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.5.dp, selectedColor.copy(alpha = 0.4f)),
-                    elevation = CardDefaults.cardElevation(3.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "$selectedLabel (${selectedDatesList.size})",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = selectedColor
-                            )
-                            TextButton(onClick = { selectedStatusFilter = null }) {
-                                Text(if (lang == "so") "Xir" else "Close", fontSize = 12.sp)
+        item {
+            AnimatedVisibility(
+                visible = selectedStatusFilter != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                if (selectedStatusFilter != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.5.dp, selectedColor.copy(alpha = 0.5f)),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "$selectedLabel (${selectedDatesList.size})",
+                                    fontFamily = OutfitFontFamily,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = selectedColor
+                                )
+                                VibrantTintedButton(
+                                    text = if (lang == "so") "Xir" else "Close",
+                                    color = selectedColor,
+                                    height = 32.dp,
+                                    fontSize = 11,
+                                    onClick = { selectedStatusFilter = null }
+                                )
                             }
-                        }
 
-                        HorizontalDivider(color = Color(0xFFE2E8F0), modifier = Modifier.padding(vertical = 8.dp))
+                            HorizontalDivider(color = selectedColor.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 10.dp))
 
-                        if (selectedDatesList.isEmpty()) {
-                            Text(
-                                text = if (lang == "so") "Ma jirto maalin xaaladdan leh." else "No dates recorded for this status.",
-                                fontSize = 13.sp,
-                                color = Color.Gray
-                            )
-                        } else {
-                            selectedDatesList.forEachIndexed { idx, dateStr ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = selectedColor.copy(alpha = 0.15f),
-                                        modifier = Modifier.size(26.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = "${idx + 1}",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = selectedColor
-                                            )
+                            if (selectedDatesList.isEmpty()) {
+                                Text(
+                                    text = if (lang == "so") "Ma jirto maalin xaaladdan leh." else "No dates recorded for this status.",
+                                    fontSize = 13.sp,
+                                    color = TextSecondary
+                                )
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    selectedDatesList.forEachIndexed { idx, dateStr ->
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = selectedColor.copy(alpha = 0.07f),
+                                            border = BorderStroke(1.dp, selectedColor.copy(alpha = 0.2f))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .clip(CircleShape)
+                                                        .background(selectedColor),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "${idx + 1}",
+                                                        fontFamily = OutfitFontFamily,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = "${idx + 1}. ${formatDayAndDate(dateStr, lang)}",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = NavyPrimary
+                                                )
+                                            }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "${idx + 1}. ${formatDayAndDate(dateStr, lang)}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = NavyPrimary
-                                    )
                                 }
                             }
                         }
@@ -608,20 +686,28 @@ fun ParentChildFeesTab(
         if (totalBalance > 0) {
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF5F5)),
-                    border = BorderStroke(1.dp, RedDanger),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.cardColors(containerColor = RedBackground),
+                    border = BorderStroke(1.5.dp, RedDanger.copy(alpha = 0.6f)),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = RedDanger)
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(RedDanger),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             if (lang == "so")
                                 "Waalid qaddarin leh, waxaa ilmahaaga lagu leeyahay fiiga dugsiga oo dhan $$totalBalance."
                             else
                                 "Dear Parent, your child's outstanding school fee balance of $$totalBalance is due.",
                             fontSize = 13.sp,
-                            color = RedDanger,
+                            color = Color(0xFF991B1B),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -631,7 +717,7 @@ fun ParentChildFeesTab(
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatCard(if (lang == "so") "Wadarta Fiiga" else "Total Fee", "$$totalBilled", Icons.Default.AttachMoney, NavyPrimary, Modifier.weight(1f))
+                StatCard(if (lang == "so") "Wadarta Fiiga" else "Total Fee", "$$totalBilled", Icons.Default.AttachMoney, NavyLight, Modifier.weight(1f))
                 StatCard(AppStrings.get("paid_btn", lang), "$$totalPaid", Icons.Default.Check, GreenAccent, Modifier.weight(1f))
             }
         }
@@ -642,92 +728,107 @@ fun ParentChildFeesTab(
 
         if (childFeeNotifs.isNotEmpty()) {
             item {
-                Text(
-                    if (lang == "so") "Ogeysiisyada & Rasiidyada Fiiga" else "Fee Notifications & Receipts",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = NavyPrimary,
-                    modifier = Modifier.padding(top = 6.dp)
+                SectionHeaderRow(
+                    title = if (lang == "so") "Ogeysiisyada & Rasiidyada Fiiga" else "Fee Notifications & Receipts",
+                    accentColor = GreenAccent,
+                    icon = Icons.Default.ReceiptLong
                 )
             }
             items(childFeeNotifs) { notif ->
+                val hasReceipt = notif.receiptNo.isNotBlank()
+                val accent = if (hasReceipt) GreenAccent else BlueSecondary
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (notif.receiptNo.isNotBlank()) Color(0xFFF0FFF4) else Color(0xFFEBF8FF)
+                        containerColor = if (hasReceipt) GreenBackground else BlueSurface
                     ),
-                    border = BorderStroke(1.dp, if (notif.receiptNo.isNotBlank()) GreenAccent.copy(alpha = 0.4f) else BlueSecondary.copy(alpha = 0.4f))
+                    border = BorderStroke(1.2.dp, accent.copy(alpha = 0.45f))
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(notif.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NavyPrimary)
-                            if (notif.receiptNo.isNotBlank()) {
-                                Surface(shape = RoundedCornerShape(4.dp), color = GreenAccent) {
+                            Text(notif.title, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyPrimary)
+                            if (hasReceipt) {
+                                Surface(shape = RoundedCornerShape(50), color = GreenAccent) {
                                     Text(
                                         notif.receiptNo,
+                                        fontFamily = MonoFontFamily,
                                         color = Color.White,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                     )
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(notif.message, fontSize = 12.sp, color = Color.DarkGray)
-                        Text(notif.date, fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(notif.message, fontSize = 12.sp, color = TextPrimary)
+                        Text(notif.date, fontSize = 10.sp, color = TextSecondary, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             }
         }
 
         item {
-            Text(
-                if (lang == "so") "Biilasha & Lacag Bixinta" else "Fee Invoices & Payments",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                modifier = Modifier.padding(top = 6.dp)
+            SectionHeaderRow(
+                title = if (lang == "so") "Biilasha & Lacag Bixinta" else "Fee Invoices & Payments",
+                accentColor = NavyLight,
+                icon = Icons.Default.AccountBalanceWallet
             )
         }
 
         if (allFeePayments.isEmpty()) {
             item {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray, fontSize = 13.sp)
+                EmptyStateCard(
+                    icon = Icons.Default.Receipt,
+                    message = AppStrings.get("no_data", lang),
+                    accentColor = BlueSecondary
+                )
             }
         } else {
             items(allFeePayments) { p ->
+                val cardAccent = if (p.balance > 0) RedDanger else GreenAccent
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, cardAccent.copy(alpha = 0.25f)),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(p.feeName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(p.feeName, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
                             StatusBadge(status = p.status, lang = lang)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "${AppStrings.get("amount", lang)}: $${p.amount} • ${AppStrings.get("amount_paid", lang)}: $${p.amountPaid} • ${AppStrings.get("balance", lang)}: $${p.balance}",
                             fontSize = 12.sp,
-                            color = Color.Gray
+                            color = TextSecondary
                         )
                         if (p.paymentDate.isNotBlank()) {
-                            Text(
-                                "${AppStrings.get("date", lang)}: ${p.paymentDate} • ${AppStrings.get("receipt_no", lang)}: ${p.receiptNo}",
-                                fontSize = 11.sp,
-                                color = GreenAccent,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = GreenBackground
+                            ) {
+                                Text(
+                                    "${AppStrings.get("date", lang)}: ${p.paymentDate} • ${AppStrings.get("receipt_no", lang)}: ${p.receiptNo}",
+                                    fontFamily = MonoFontFamily,
+                                    fontSize = 11.sp,
+                                    color = GreenAccent,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -746,19 +847,28 @@ fun ParentChildRemarksTab(
     val remarksList by viewModel.repository.observeRemarksForStudent(student.studentId).collectAsState(initial = emptyList())
 
     if (remarksList.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(AppStrings.get("no_data", lang), color = Color.Gray)
-        }
+        EmptyStateCard(
+            icon = Icons.Default.MarkChatRead,
+            message = AppStrings.get("no_data", lang),
+            accentColor = VioletAccent
+        )
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(remarksList) { remark ->
+                val catColor = when (remark.category) {
+                    "NEEDS_IMPROVEMENT" -> AmberDark
+                    "EXCELLENT_BEHAVIOR" -> BlueSecondary
+                    else -> GreenAccent
+                }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, catColor.copy(alpha = 0.3f)),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
@@ -766,13 +876,24 @@ fun ParentChildRemarksTab(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(remark.category.replace("_", " "), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = GreenAccent)
-                            Text(remark.date, fontSize = 11.sp, color = Color.Gray)
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = catColor.copy(alpha = 0.13f)
+                            ) {
+                                Text(
+                                    remark.category.replace("_", " "),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 11.sp,
+                                    color = catColor,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                            Text(remark.date, fontSize = 11.sp, color = TextSecondary)
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(remark.message, fontSize = 13.sp, color = Color.DarkGray)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("Teacher: ${remark.teacherName}", fontSize = 11.sp, color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(remark.message, fontSize = 13.sp, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Teacher: ${remark.teacherName}", fontSize = 11.sp, color = VioletAccent, fontStyle = FontStyle.Italic, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -792,7 +913,23 @@ fun ParentAddChildDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(AppStrings.get("add_child", lang), fontWeight = FontWeight.Bold, color = NavyPrimary) },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(GradientEmerald)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(AppStrings.get("add_child", lang), fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary)
+            }
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -801,7 +938,7 @@ fun ParentAddChildDialog(
                     else
                         "Enter the Student ID and confidential Parent Linking Code provided by the school administration.",
                     fontSize = 12.sp,
-                    color = Color.DarkGray
+                    color = TextSecondary
                 )
 
                 OutlinedTextField(
@@ -809,6 +946,7 @@ fun ParentAddChildDialog(
                     onValueChange = { studentId = it },
                     label = { Text(AppStrings.get("student_id", lang)) },
                     placeholder = { Text("e.g. IFT-101") },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().testTag("parent_child_id_input")
                 )
 
@@ -817,25 +955,27 @@ fun ParentAddChildDialog(
                     onValueChange = { linkingCode = it },
                     label = { Text(AppStrings.get("linking_code", lang)) },
                     placeholder = { Text("e.g. 749201") },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().testTag("parent_child_linking_code_input")
                 )
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("link_student", lang),
+                icon = Icons.Default.Link,
+                gradient = GradientEmerald,
+                height = 42.dp,
                 onClick = {
                     if (studentId.isNotBlank() && linkingCode.isNotBlank()) {
                         onLinkChild(studentId.trim(), linkingCode.trim())
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
                 modifier = Modifier.testTag("parent_confirm_link_child")
-            ) {
-                Text(AppStrings.get("link_student", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger, fontWeight = FontWeight.SemiBold) }
         }
     )
 }

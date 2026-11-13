@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -71,13 +75,11 @@ fun AdminDashboardScreen(
     var todayAttendancePopupStatus by remember { mutableStateOf<String?>(null) } // "PRESENT" or "ABSENT"
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    // Today's attendance calculation
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
     val todayAttendance = allAttendance.filter { it.date == todayStr }
     val presentToday = todayAttendance.sumOf { it.presentCount }
     val absentToday = todayAttendance.sumOf { it.absentCount }
 
-    // Published exams & unpaid fees
     val publishedExamsCount = exams.count { it.status == "PUBLISHED" }
     val unpaidFeesTotal = feePayments.filter { it.status != "PAID" }.sumOf { it.balance }
 
@@ -216,7 +218,6 @@ fun AdminDashboardScreen(
         }
     }
 
-    // Today's Present / Absent Student List Dialog
     if (todayAttendancePopupStatus != null) {
         val targetStatus = todayAttendancePopupStatus!!
         TodayAttendanceDetailDialog(
@@ -228,7 +229,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Add / Edit Teacher Dialog (NO subjects input; WITH Gallery+Camera photo support)
     if (showAddTeacherDialog) {
         TeacherFormDialog(
             lang = lang,
@@ -261,7 +261,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Add / Edit Class Dialog (NO subjects input; select from registered teachers)
     if (showAddClassDialog) {
         ClassFormDialog(
             lang = lang,
@@ -297,7 +296,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Class Preview Dialog (shows class info & enrolled student names)
     if (previewClassTarget != null) {
         val c = previewClassTarget!!
         val classStudents = students.filter { it.classId == c.classId }
@@ -309,7 +307,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Add / Edit Student Dialog
     if (showAddStudentDialog) {
         StudentFormDialog(
             lang = lang,
@@ -353,7 +350,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Create Exam Folder Dialog
     if (showCreateFolderDialog) {
         CreateExamFolderDialog(
             lang = lang,
@@ -366,7 +362,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Opened Exam Folder -> shows all classes' exams inside that folder
     if (openedExamFolder != null) {
         val folder = openedExamFolder!!
         val folderExams = exams.filter { it.folderId == folder.folderId }
@@ -382,7 +377,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Inspect every student & report inside an Exam
     if (openedExamForStudents != null) {
         val exam = openedExamForStudents!!
         val classStudents = students.filter { it.classId == exam.classId }
@@ -399,7 +393,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Full Individual Student Report Card Dialog (from Admin Exam Folder)
     if (selectedReportPreview != null) {
         val (st, ex, res) = selectedReportPreview!!
         AdminStudentReportDialog(
@@ -412,7 +405,6 @@ fun AdminDashboardScreen(
         )
     }
 
-    // Settings Dialog
     if (showSettingsDialog) {
         AdminSettingsDialog(
             school = schoolConfig,
@@ -432,49 +424,85 @@ fun AdminBottomNavigation(
     lang: String,
     onSelectTab: (String) -> Unit
 ) {
-    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        NavigationBarItem(
-            selected = currentTab == "DASHBOARD",
-            onClick = { onSelectTab("DASHBOARD") },
-            icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
-            label = { Text(AppStrings.get("dashboard", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("admin_nav_dashboard")
-        )
-        NavigationBarItem(
-            selected = currentTab == "TEACHERS",
-            onClick = { onSelectTab("TEACHERS") },
-            icon = { Icon(Icons.Default.People, contentDescription = null) },
-            label = { Text(AppStrings.get("teachers", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("admin_nav_teachers")
-        )
-        NavigationBarItem(
-            selected = currentTab == "CLASSES",
-            onClick = { onSelectTab("CLASSES") },
-            icon = { Icon(Icons.Default.Class, contentDescription = null) },
-            label = { Text(AppStrings.get("classes", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("admin_nav_classes")
-        )
-        NavigationBarItem(
-            selected = currentTab == "STUDENTS",
-            onClick = { onSelectTab("STUDENTS") },
-            icon = { Icon(Icons.Default.School, contentDescription = null) },
-            label = { Text(AppStrings.get("students", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("admin_nav_students")
-        )
-        NavigationBarItem(
-            selected = currentTab == "EXAMS",
-            onClick = { onSelectTab("EXAMS") },
-            icon = { Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null) },
-            label = { Text(AppStrings.get("exams", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("admin_nav_exams")
-        )
-        NavigationBarItem(
-            selected = currentTab == "FEES",
-            onClick = { onSelectTab("FEES") },
-            icon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
-            label = { Text(AppStrings.get("fees", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("admin_nav_fees")
-        )
+    Surface(
+        color = Color.White,
+        shadowElevation = 10.dp,
+        border = BorderStroke(1.dp, BorderLight.copy(alpha = 0.6f))
+    ) {
+        NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
+            NavigationBarItem(
+                selected = currentTab == "DASHBOARD",
+                onClick = { onSelectTab("DASHBOARD") },
+                icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
+                label = { Text(AppStrings.get("dashboard", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = NavyLight,
+                    selectedTextColor = NavyLight,
+                    indicatorColor = BlueSurface
+                ),
+                modifier = Modifier.testTag("admin_nav_dashboard")
+            )
+            NavigationBarItem(
+                selected = currentTab == "TEACHERS",
+                onClick = { onSelectTab("TEACHERS") },
+                icon = { Icon(Icons.Default.People, contentDescription = null) },
+                label = { Text(AppStrings.get("teachers", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = BlueSecondary,
+                    selectedTextColor = BlueSecondary,
+                    indicatorColor = BlueSurface
+                ),
+                modifier = Modifier.testTag("admin_nav_teachers")
+            )
+            NavigationBarItem(
+                selected = currentTab == "CLASSES",
+                onClick = { onSelectTab("CLASSES") },
+                icon = { Icon(Icons.Default.Class, contentDescription = null) },
+                label = { Text(AppStrings.get("classes", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = VioletAccent,
+                    selectedTextColor = VioletAccent,
+                    indicatorColor = VioletBackground
+                ),
+                modifier = Modifier.testTag("admin_nav_classes")
+            )
+            NavigationBarItem(
+                selected = currentTab == "STUDENTS",
+                onClick = { onSelectTab("STUDENTS") },
+                icon = { Icon(Icons.Default.School, contentDescription = null) },
+                label = { Text(AppStrings.get("students", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = GreenAccent,
+                    selectedTextColor = GreenAccent,
+                    indicatorColor = GreenBackground
+                ),
+                modifier = Modifier.testTag("admin_nav_students")
+            )
+            NavigationBarItem(
+                selected = currentTab == "EXAMS",
+                onClick = { onSelectTab("EXAMS") },
+                icon = { Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null) },
+                label = { Text(AppStrings.get("exams", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = AmberDark,
+                    selectedTextColor = AmberDark,
+                    indicatorColor = AmberBackground
+                ),
+                modifier = Modifier.testTag("admin_nav_exams")
+            )
+            NavigationBarItem(
+                selected = currentTab == "FEES",
+                onClick = { onSelectTab("FEES") },
+                icon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
+                label = { Text(AppStrings.get("fees", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = RedDanger,
+                    selectedTextColor = RedDanger,
+                    indicatorColor = RedBackground
+                ),
+                modifier = Modifier.testTag("admin_nav_fees")
+            )
+        }
     }
 }
 
@@ -504,44 +532,80 @@ fun AdminOverviewContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Luminous Cobalt-to-Cerulean Hero Banner
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = NavyPrimary.copy(alpha = 0.08f)),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(GradientCobaltDeep))
+                        .drawBehind {
+                            drawCircle(
+                                color = Color(0xFF38BDF8).copy(alpha = 0.2f),
+                                radius = size.height * 0.9f,
+                                center = Offset(size.width * 0.92f, size.height * 0.15f)
+                            )
+                            drawCircle(
+                                color = Color(0xFF10B981).copy(alpha = 0.16f),
+                                radius = size.height * 0.65f,
+                                center = Offset(size.width * 0.1f, size.height * 0.95f)
+                            )
+                        }
+                        .padding(18.dp)
                 ) {
-                    Icon(Icons.Default.Shield, contentDescription = null, tint = NavyPrimary)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        AppStrings.get("single_school_notice", lang),
-                        fontSize = 12.sp,
-                        color = NavyPrimary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .background(AmberWarning.copy(alpha = 0.22f))
+                                    .border(1.dp, AmberWarning.copy(alpha = 0.6f), RoundedCornerShape(11.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Shield, contentDescription = null, tint = AmberWarning, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    AppStrings.get("dashboard", lang),
+                                    fontFamily = OutfitFontFamily,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    AppStrings.get("single_school_notice", lang),
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFBAE6FD)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color.White.copy(alpha = 0.14f)
+                        ) {
+                            Text(
+                                text = if (lang == "so") "Taabo kaar walbo si aad u aragto xogta uu u taagan yahay" else "Tap any stat card to open its full breakdown",
+                                fontSize = 11.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        item {
-            Column {
-                Text(
-                    AppStrings.get("dashboard", lang),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    if (lang == "so") "Taabo kaar walbo si aad u aragto xogta uu u taagan yahay" else "Tap any stat card to open its full breakdown",
-                    fontSize = 11.sp,
-                    color = Color.Gray
-                )
-            }
-        }
-
-        // Clickable Stats Grid
+        // Clickable Vibrant Stats Grid
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -549,7 +613,7 @@ fun AdminOverviewContent(
                         title = AppStrings.get("total_students", lang),
                         value = "$studentsCount",
                         icon = Icons.Default.School,
-                        color = NavyPrimary,
+                        color = NavyLight,
                         modifier = Modifier.weight(1f).testTag("stat_total_students"),
                         onClick = onOpenStudents
                     )
@@ -568,7 +632,7 @@ fun AdminOverviewContent(
                         title = AppStrings.get("total_classes", lang),
                         value = "$classesCount",
                         icon = Icons.Default.Class,
-                        color = Color(0xFF7C3AED),
+                        color = VioletAccent,
                         modifier = Modifier.weight(1f).testTag("stat_total_classes"),
                         onClick = onOpenClasses
                     )
@@ -587,7 +651,7 @@ fun AdminOverviewContent(
                         title = AppStrings.get("present_today", lang),
                         value = "$presentToday",
                         icon = Icons.Default.CheckCircle,
-                        color = GreenAccent,
+                        color = GreenLight,
                         modifier = Modifier.weight(1f).testTag("stat_present_today"),
                         onClick = onOpenPresentToday
                     )
@@ -605,21 +669,19 @@ fun AdminOverviewContent(
                     title = AppStrings.get("unpaid_fees", lang),
                     value = String.format(Locale.US, "$%.2f", unpaidFees),
                     icon = Icons.Default.AttachMoney,
-                    color = AmberWarning,
+                    color = AmberDark,
                     modifier = Modifier.testTag("stat_unpaid_fees"),
                     onClick = onOpenFees
                 )
             }
         }
 
-        // Quick Actions
+        // Quick Actions (Vibrant Multi-Color Gradient Buttons)
         item {
-            Text(
-                AppStrings.get("quick_actions", lang),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 8.dp)
+            SectionHeaderRow(
+                title = AppStrings.get("quick_actions", lang),
+                accentColor = NavyLight,
+                icon = Icons.Default.Bolt
             )
         }
 
@@ -628,27 +690,21 @@ fun AdminOverviewContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("teachers", lang),
+                    icon = Icons.Default.PersonAdd,
+                    gradient = GradientRoyalBlue,
                     onClick = onOpenTeachers,
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f).testTag("admin_action_teachers")
-                ) {
-                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("teachers", lang), fontSize = 12.sp)
-                }
+                )
 
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("classes", lang),
+                    icon = Icons.Default.AddBusiness,
+                    gradient = GradientViolet,
                     onClick = onOpenClasses,
-                    colors = ButtonDefaults.buttonColors(containerColor = BlueSecondary),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f).testTag("admin_action_classes")
-                ) {
-                    Icon(Icons.Default.AddBusiness, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("classes", lang), fontSize = 12.sp)
-                }
+                )
             }
         }
 
@@ -657,37 +713,30 @@ fun AdminOverviewContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("exam_folders", lang),
+                    icon = Icons.Default.FolderOpen,
+                    gradient = GradientEmerald,
                     onClick = onOpenExams,
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f).testTag("admin_action_publish_exams")
-                ) {
-                    Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("exam_folders", lang), fontSize = 12.sp)
-                }
+                )
 
-                OutlinedButton(
+                VibrantGradientButton(
+                    text = AppStrings.get("settings", lang),
+                    icon = Icons.Default.Settings,
+                    gradient = GradientCrimson,
                     onClick = onOpenSettings,
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f).testTag("admin_action_settings")
-                ) {
-                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("settings", lang), fontSize = 12.sp)
-                }
+                )
             }
         }
 
         // Recent Activity Feed
         item {
-            Text(
-                AppStrings.get("recent_activities", lang),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 8.dp)
+            SectionHeaderRow(
+                title = AppStrings.get("recent_activities", lang),
+                accentColor = GreenAccent,
+                icon = Icons.Default.NotificationsActive
             )
         }
 
@@ -695,12 +744,14 @@ fun AdminOverviewContent(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, BorderLight)
                 ) {
                     Text(
                         AppStrings.get("no_data", lang),
                         fontSize = 13.sp,
-                        color = Color.Gray,
+                        color = TextSecondary,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -709,26 +760,28 @@ fun AdminOverviewContent(
             items(notifications.take(5)) { notif ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.2f)),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(13.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(NavyPrimary.copy(alpha = 0.1f)),
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(Brush.linearGradient(GradientRoyalBlue)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Notifications, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White, modifier = Modifier.size(19.dp))
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(notif.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(notif.message, fontSize = 12.sp, color = Color.Gray)
+                            Text(notif.title, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NavyPrimary)
+                            Text(notif.message, fontSize = 12.sp, color = TextSecondary)
                         }
                     }
                 }
@@ -754,13 +807,33 @@ fun TodayAttendanceDetailDialog(
     }
     val title = if (status == "PRESENT") AppStrings.get("today_present_list", lang) else AppStrings.get("today_absent_list", lang)
     val accent = if (status == "PRESENT") GreenAccent else RedDanger
+    val gradient = if (status == "PRESENT") GradientEmerald else GradientCrimson
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
-            Column {
-                Text(title, fontWeight = FontWeight.Bold, color = accent)
-                Text("${AppStrings.get("date", lang)}: $todayStr (${entries.size})", fontSize = 12.sp, color = Color.Gray)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(gradient)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (status == "PRESENT") Icons.Default.CheckCircle else Icons.Default.Cancel,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(title, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = accent, fontSize = 16.sp)
+                    Text("${AppStrings.get("date", lang)}: $todayStr (${entries.size})", fontSize = 12.sp, color = TextSecondary)
+                }
             }
         },
         text = {
@@ -768,7 +841,7 @@ fun TodayAttendanceDetailDialog(
                 Text(
                     if (lang == "so") "Maanta weli lama diiwaangelin arday xaaladdan leh." else "No students recorded with this status today yet.",
                     fontSize = 13.sp,
-                    color = Color.Gray
+                    color = TextSecondary
                 )
             } else {
                 LazyColumn(
@@ -778,8 +851,9 @@ fun TodayAttendanceDetailDialog(
                     items(entries.size) { index ->
                         val (name, id, className) = entries[index]
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            shape = RoundedCornerShape(8.dp)
+                            colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.06f)),
+                            border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(10.dp),
@@ -787,8 +861,8 @@ fun TodayAttendanceDetailDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text("${index + 1}. $name", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text("$id • $className", fontSize = 11.sp, color = Color.Gray)
+                                    Text("${index + 1}. $name", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NavyPrimary)
+                                    Text("$id • $className", fontSize = 11.sp, color = TextSecondary)
                                 }
                                 StatusBadge(status = status, lang = lang)
                             }
@@ -798,7 +872,7 @@ fun TodayAttendanceDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = gradient, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -817,42 +891,39 @@ fun AdminTeachersContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = AppStrings.get("teachers", lang),
+            subtitle = "${teachers.size}",
+            accentColor = BlueSecondary,
+            icon = Icons.Default.People
         ) {
-            Text(
-                AppStrings.get("teachers", lang),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("add", lang),
+                icon = Icons.Default.Add,
+                gradient = GradientRoyalBlue,
+                height = 42.dp,
                 onClick = onAddTeacher,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("admin_add_teacher_button")
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         if (teachers.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.PeopleOutline,
+                message = AppStrings.get("no_data", lang),
+                accentColor = BlueSecondary
+            )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(teachers) { teacher ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.22f)),
+                        elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -861,8 +932,8 @@ fun AdminTeachersContent(
                             AvatarImage(
                                 photoBase64 = teacher.photoUrl,
                                 name = teacher.fullName,
-                                size = 48.dp,
-                                accentColor = NavyPrimary
+                                size = 50.dp,
+                                accentColor = BlueSecondary
                             )
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -870,29 +941,37 @@ fun AdminTeachersContent(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     teacher.fullName,
+                                    fontFamily = OutfitFontFamily,
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = NavyPrimary
                                 )
                                 Text(
                                     "${teacher.phone} • ${teacher.email.ifBlank { "No email" }}",
                                     fontSize = 12.sp,
-                                    color = Color.Gray
+                                    color = TextSecondary
                                 )
                             }
 
-                            IconButton(
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            VibrantIconActionButton(
+                                icon = Icons.Default.Edit,
+                                contentDescription = AppStrings.get("edit", lang),
+                                color = BlueSecondary,
                                 onClick = { onEditTeacher(teacher) },
                                 modifier = Modifier.testTag("edit_teacher_${teacher.teacherId}")
-                            ) {
-                                Icon(Icons.Default.Edit, contentDescription = AppStrings.get("edit", lang), tint = BlueSecondary)
-                            }
+                            )
 
-                            IconButton(
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            VibrantIconActionButton(
+                                icon = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                color = RedDanger,
                                 onClick = { onDeleteTeacher(teacher.teacherId) },
                                 modifier = Modifier.testTag("delete_teacher_${teacher.teacherId}")
-                            ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = RedDanger)
-                            }
+                            )
                         }
                     }
                 }
@@ -917,45 +996,42 @@ fun AdminClassesContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = AppStrings.get("classes", lang),
+            subtitle = "${classes.size}",
+            accentColor = VioletAccent,
+            icon = Icons.Default.Class
         ) {
-            Text(
-                AppStrings.get("classes", lang),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("add", lang),
+                icon = Icons.Default.Add,
+                gradient = GradientViolet,
+                height = 42.dp,
                 onClick = onAddClass,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("admin_add_class_button")
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         if (classes.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.MeetingRoom,
+                message = AppStrings.get("no_data", lang),
+                accentColor = VioletAccent
+            )
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(classes) { classRoom ->
                     val studentCount = students.count { it.classId == classRoom.classId }
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onPreviewClass(classRoom) },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        border = BorderStroke(1.dp, VioletAccent.copy(alpha = 0.25f)),
+                        elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(
@@ -963,75 +1039,87 @@ fun AdminClassesContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    classRoom.name,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NavyPrimary
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(11.dp))
+                                            .background(Brush.linearGradient(GradientViolet)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.Class, contentDescription = null, tint = Color.White, modifier = Modifier.size(19.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        classRoom.name,
+                                        fontFamily = OutfitFontFamily,
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = NavyPrimary
+                                    )
+                                }
+
                                 Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = BlueSurface
+                                    shape = RoundedCornerShape(50),
+                                    color = BlueSurface,
+                                    border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.35f))
                                 ) {
                                     Text(
                                         "${if (lang == "so") "Furaha" else "Password"}: ${classRoom.accessCode}",
+                                        fontFamily = MonoFontFamily,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = BlueSecondary,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        color = NavyPrimary,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
                                 "${AppStrings.get("class_teacher", lang)}: ${classRoom.classTeacherName.ifBlank { if (lang == "so") "Lama Xilsaarin" else "Not Assigned" }}",
                                 fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
                             )
 
                             Text(
                                 "${AppStrings.get("total_students", lang)}: $studentCount • ${classRoom.academicYear}",
                                 fontSize = 12.sp,
-                                color = Color.Gray
+                                color = TextSecondary
                             )
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                OutlinedButton(
+                                VibrantTintedButton(
+                                    text = AppStrings.get("preview", lang),
+                                    color = GreenAccent,
+                                    icon = Icons.Default.Visibility,
                                     onClick = { onPreviewClass(classRoom) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                     modifier = Modifier.weight(1f).testTag("preview_class_${classRoom.classId}")
-                                ) {
-                                    Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(AppStrings.get("preview", lang), fontSize = 11.sp)
-                                }
+                                )
 
-                                OutlinedButton(
+                                VibrantTintedButton(
+                                    text = AppStrings.get("edit", lang),
+                                    color = BlueSecondary,
+                                    icon = Icons.Default.Edit,
                                     onClick = { onEditClass(classRoom) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                     modifier = Modifier.weight(1f).testTag("edit_class_${classRoom.classId}")
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = BlueSecondary)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(AppStrings.get("edit", lang), fontSize = 11.sp, color = BlueSecondary)
-                                }
+                                )
 
-                                IconButton(
+                                VibrantIconActionButton(
+                                    icon = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    color = RedDanger,
                                     onClick = { onDeleteClass(classRoom.classId) },
                                     modifier = Modifier.testTag("delete_class_${classRoom.classId}")
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = RedDanger)
-                                }
+                                )
                             }
                         }
                     }
@@ -1050,13 +1138,16 @@ fun ClassPreviewDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Column {
-                Text("${AppStrings.get("class_preview", lang)}: ${classRoom.name}", fontWeight = FontWeight.Bold, color = NavyPrimary)
+                Text("${AppStrings.get("class_preview", lang)}: ${classRoom.name}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary)
                 Text(
                     "${AppStrings.get("class_teacher", lang)}: ${classRoom.classTeacherName.ifBlank { "-" }} • Password: ${classRoom.accessCode}",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = BlueSecondary,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         },
@@ -1072,29 +1163,30 @@ fun ClassPreviewDialog(
                 if (students.isEmpty()) {
                     Text(
                         if (lang == "so") "Fasalakan weli arday laguma darin." else "No students enrolled in this class yet.",
-                        color = Color.Gray,
+                        color = TextSecondary,
                         fontSize = 13.sp
                     )
                 } else {
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 300.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(students.size) { index ->
                             val st = students[index]
                             Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                                shape = RoundedCornerShape(8.dp)
+                                colors = CardDefaults.cardColors(containerColor = BlueSurface.copy(alpha = 0.4f)),
+                                border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.22f)),
+                                shape = RoundedCornerShape(10.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    AvatarImage(photoBase64 = st.photoUrl, name = st.fullName, size = 34.dp, accentColor = GreenAccent)
+                                    AvatarImage(photoBase64 = st.photoUrl, name = st.fullName, size = 36.dp, accentColor = GreenAccent)
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("${index + 1}. ${st.fullName}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                        Text("ID: ${st.studentId} • Code: ${st.linkingCode}", fontSize = 11.sp, color = Color.Gray)
+                                        Text("${index + 1}. ${st.fullName}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NavyPrimary)
+                                        Text("ID: ${st.studentId} • Code: ${st.linkingCode}", fontFamily = MonoFontFamily, fontSize = 11.sp, color = TextSecondary)
                                     }
                                 }
                             }
@@ -1104,7 +1196,7 @@ fun ClassPreviewDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = GradientRoyalBlue, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -1132,26 +1224,20 @@ fun AdminStudentsContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = AppStrings.get("students", lang),
+            subtitle = "${students.size}",
+            accentColor = GreenAccent,
+            icon = Icons.Default.School
         ) {
-            Text(
-                AppStrings.get("students", lang),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("add", lang),
+                icon = Icons.Default.Add,
+                gradient = GradientEmerald,
+                height = 42.dp,
                 onClick = onAddStudent,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("admin_add_student_button")
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -1159,10 +1245,16 @@ fun AdminStudentsContent(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = NavyLight) },
             placeholder = { Text(AppStrings.get("search", lang)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedBorderColor = NavyLight,
+                unfocusedBorderColor = BorderLight
+            ),
             modifier = Modifier.fillMaxWidth().testTag("admin_student_search"),
-            shape = RoundedCornerShape(10.dp)
+            shape = RoundedCornerShape(14.dp)
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -1172,14 +1264,22 @@ fun AdminStudentsContent(
                 FilterChip(
                     selected = selectedClassFilter == null,
                     onClick = { selectedClassFilter = null },
-                    label = { Text(if (lang == "so") "Dhammaan" else "All") }
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = NavyLight,
+                        selectedLabelColor = Color.White
+                    ),
+                    label = { Text(if (lang == "so") "Dhammaan" else "All", fontWeight = FontWeight.Bold) }
                 )
             }
             items(classes) { c ->
                 FilterChip(
                     selected = selectedClassFilter == c.classId,
                     onClick = { selectedClassFilter = c.classId },
-                    label = { Text(c.name) }
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = NavyLight,
+                        selectedLabelColor = Color.White
+                    ),
+                    label = { Text(c.name, fontWeight = FontWeight.Bold) }
                 )
             }
         }
@@ -1187,17 +1287,20 @@ fun AdminStudentsContent(
         Spacer(modifier = Modifier.height(12.dp))
 
         if (filtered.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.PersonSearch,
+                message = AppStrings.get("no_data", lang),
+                accentColor = GreenAccent
+            )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(filtered) { student ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        border = BorderStroke(1.dp, GreenAccent.copy(alpha = 0.22f)),
+                        elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -1206,7 +1309,7 @@ fun AdminStudentsContent(
                             AvatarImage(
                                 photoBase64 = student.photoUrl,
                                 name = student.fullName,
-                                size = 44.dp,
+                                size = 48.dp,
                                 accentColor = GreenAccent
                             )
 
@@ -1215,38 +1318,47 @@ fun AdminStudentsContent(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     student.fullName,
+                                    fontFamily = OutfitFontFamily,
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = NavyPrimary
                                 )
                                 Text(
                                     "ID: ${student.studentId} • ${student.className}",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = TextSecondary
                                 )
                                 Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color(0xFFFEFCBF),
-                                    modifier = Modifier.padding(top = 4.dp)
+                                    shape = RoundedCornerShape(50),
+                                    color = AmberBackground,
+                                    border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.45f)),
+                                    modifier = Modifier.padding(top = 5.dp)
                                 ) {
                                     Text(
                                         "Linking Code: ${student.linkingCode}",
+                                        fontFamily = MonoFontFamily,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF744210),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        color = Color(0xFF92400E),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
                             }
 
-                            IconButton(onClick = { onEditStudent(student) }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = BlueSecondary)
-                            }
-                            IconButton(
+                            VibrantIconActionButton(
+                                icon = Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                color = BlueSecondary,
+                                onClick = { onEditStudent(student) }
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            VibrantIconActionButton(
+                                icon = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                color = RedDanger,
                                 onClick = { onDeleteStudent(student.studentId) },
                                 modifier = Modifier.testTag("delete_student_${student.studentId}")
-                            ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = RedDanger)
-                            }
+                            )
                         }
                     }
                 }
@@ -1276,45 +1388,33 @@ fun AdminExamsContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = AppStrings.get("exam_folders", lang),
+            subtitle = if (lang == "so")
+                "Abuur folder-ka imtixaanka; fasallada oo dhan gudaha ayay ku soo aruurayaan"
+            else
+                "Create exam folders where all class submissions & student reports gather",
+            accentColor = AmberDark,
+            icon = Icons.Default.FolderSpecial
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    AppStrings.get("exam_folders", lang),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    if (lang == "so")
-                        "Abuur folder-ka imtixaanka; fasallada oo dhan gudaha ayay ku soo aruurayaan"
-                    else
-                        "Create exam folders where all class submissions & student reports gather",
-                    fontSize = 11.sp,
-                    color = Color.Gray
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("add", lang),
+                icon = Icons.Default.CreateNewFolder,
+                gradient = GradientAmber,
+                height = 42.dp,
                 onClick = onCreateFolder,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("admin_create_exam_folder_button")
-            ) {
-                Icon(Icons.Default.CreateNewFolder, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         if (folders.isEmpty() && unassignedExams.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.FolderOpen,
+                message = AppStrings.get("no_data", lang),
+                accentColor = AmberDark
+            )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(folders) { folder ->
@@ -1326,8 +1426,9 @@ fun AdminExamsContent(
                             .fillMaxWidth()
                             .clickable { onOpenFolder(folder) }
                             .testTag("exam_folder_${folder.folderId}"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Row(
@@ -1336,36 +1437,41 @@ fun AdminExamsContent(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(AmberWarning.copy(alpha = 0.18f)),
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Brush.linearGradient(GradientAmber)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Folder, contentDescription = null, tint = Color(0xFFB7791F), modifier = Modifier.size(30.dp))
+                                Icon(Icons.Default.Folder, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(folder.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
+                                Text(folder.name, fontFamily = OutfitFontFamily, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NavyPrimary)
                                 Text(
                                     "${folder.examType} • ${folder.academicYear}",
                                     fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = BlueSecondary
                                 )
                                 Text(
                                     if (lang == "so")
-                                        "Fasallada: ${folderExams.size} (${submittedCount} la soo gudbiyay)"
+                                        "Fasallada: ${folderExams.size} ($submittedCount la soo gudbiyay)"
                                     else
-                                        "Classes: ${folderExams.size} (${submittedCount} submitted)",
+                                        "Classes: ${folderExams.size} ($submittedCount submitted)",
                                     fontSize = 12.sp,
-                                    color = Color.Gray
+                                    color = TextSecondary
                                 )
                             }
 
-                            IconButton(onClick = { onDeleteFolder(folder.folderId) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete Folder", tint = RedDanger)
-                            }
+                            VibrantIconActionButton(
+                                icon = Icons.Default.Delete,
+                                contentDescription = "Delete Folder",
+                                color = RedDanger,
+                                onClick = { onDeleteFolder(folder.folderId) }
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = NavyPrimary)
                         }
                     }
@@ -1375,9 +1481,10 @@ fun AdminExamsContent(
                     item {
                         Text(
                             if (lang == "so") "Imtixaannada Aan Folder Lahayn" else "Other Class Examinations",
+                            fontFamily = OutfitFontFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
+                            color = TextSecondary,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -1386,8 +1493,9 @@ fun AdminExamsContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onOpenExamStudents(exam) },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.2f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(14.dp),
@@ -1396,7 +1504,7 @@ fun AdminExamsContent(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(exam.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
-                                    Text("${exam.className} • ${exam.academicYear}", fontSize = 12.sp, color = Color.Gray)
+                                    Text("${exam.className} • ${exam.academicYear}", fontSize = 12.sp, color = TextSecondary)
                                 }
                                 StatusBadge(status = exam.status, lang = lang)
                             }
@@ -1419,13 +1527,23 @@ fun AdminExamFolderDetailDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Color(0xFFB7791F))
-                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Brush.linearGradient(GradientAmber)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text(folder.name, fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 16.sp)
-                    Text("${folder.examType} • ${folder.academicYear}", fontSize = 11.sp, color = Color.Gray)
+                    Text(folder.name, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 16.sp)
+                    Text("${folder.examType} • ${folder.academicYear}", fontSize = 11.sp, color = TextSecondary)
                 }
             }
         },
@@ -1437,7 +1555,7 @@ fun AdminExamFolderDetailDialog(
                     else
                         "No class exams have been submitted into this folder yet.",
                     fontSize = 13.sp,
-                    color = Color.Gray
+                    color = TextSecondary
                 )
             } else {
                 LazyColumn(
@@ -1446,9 +1564,9 @@ fun AdminExamFolderDetailDialog(
                 ) {
                     items(folderExams) { exam ->
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                            colors = CardDefaults.cardColors(containerColor = BlueSurface.copy(alpha = 0.35f)),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.28f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Row(
@@ -1457,8 +1575,8 @@ fun AdminExamFolderDetailDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(exam.className, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = NavyPrimary)
-                                        Text(exam.name, fontSize = 12.sp, color = Color.DarkGray)
+                                        Text(exam.className, fontFamily = OutfitFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = NavyPrimary)
+                                        Text(exam.name, fontSize = 12.sp, color = TextPrimary)
                                     }
                                     StatusBadge(status = exam.status, lang = lang)
                                 }
@@ -1469,40 +1587,34 @@ fun AdminExamFolderDetailDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Button(
+                                    VibrantGradientButton(
+                                        text = if (lang == "so") "Ardayda & Report" else "Students & Reports",
+                                        icon = Icons.Default.People,
+                                        gradient = GradientRoyalBlue,
+                                        height = 38.dp,
+                                        fontSize = 11,
                                         onClick = { onInspectExamStudents(exam) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BlueSecondary),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                         modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(15.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            if (lang == "so") "Ardayda & Report" else "Students & Reports",
-                                            fontSize = 11.sp
-                                        )
-                                    }
+                                    )
 
                                     if (exam.status != "PUBLISHED") {
-                                        Button(
+                                        VibrantGradientButton(
+                                            text = AppStrings.get("publish", lang),
+                                            gradient = GradientEmerald,
+                                            height = 38.dp,
+                                            fontSize = 11,
                                             onClick = { viewModel.updateExamStatus(exam.examId, "PUBLISHED") },
-                                            colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(0.8f)
-                                        ) {
-                                            Text(AppStrings.get("publish", lang), fontSize = 11.sp)
-                                        }
+                                            modifier = Modifier.weight(0.75f)
+                                        )
                                     } else {
-                                        OutlinedButton(
+                                        VibrantTintedButton(
+                                            text = AppStrings.get("lock", lang),
+                                            color = RedDanger,
+                                            height = 38.dp,
+                                            fontSize = 11,
                                             onClick = { viewModel.updateExamStatus(exam.examId, "LOCKED") },
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(0.8f)
-                                        ) {
-                                            Text(AppStrings.get("lock", lang), fontSize = 11.sp)
-                                        }
+                                            modifier = Modifier.weight(0.75f)
+                                        )
                                     }
                                 }
                             }
@@ -1512,7 +1624,7 @@ fun AdminExamFolderDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = GradientRoyalBlue, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -1531,13 +1643,15 @@ fun AdminClassExamStudentsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Column {
-                Text("${exam.className} • ${exam.name}", fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 15.sp)
+                Text("${exam.className} • ${exam.name}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 15.sp)
                 Text(
                     if (lang == "so") "Taabo arday kasta si aad u aragto report kiisa" else "Tap any student to view their full report card",
                     fontSize = 11.sp,
-                    color = Color.Gray
+                    color = BlueSecondary
                 )
             }
         },
@@ -1563,7 +1677,7 @@ fun AdminClassExamStudentsDialog(
             }
 
             if (studentEntries.isEmpty()) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray, fontSize = 13.sp)
+                Text(AppStrings.get("no_data", lang), color = TextSecondary, fontSize = 13.sp)
             } else {
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 360.dp),
@@ -1574,31 +1688,32 @@ fun AdminClassExamStudentsDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onOpenStudentReport(st, exam, res) },
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            shape = RoundedCornerShape(10.dp)
+                            colors = CardDefaults.cardColors(containerColor = BlueSurface.copy(alpha = 0.35f)),
+                            border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = AmberWarning.copy(alpha = 0.2f),
-                                    modifier = Modifier.size(30.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(AmberWarning),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("#${res.position}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFB7791F))
-                                    }
+                                    Text("#${res.position}", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, color = Color(0xFF0F172A))
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
-                                AvatarImage(photoBase64 = st.photoUrl, name = st.fullName, size = 34.dp, accentColor = NavyPrimary)
+                                AvatarImage(photoBase64 = st.photoUrl, name = st.fullName, size = 34.dp, accentColor = NavyLight)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(st.fullName, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text(st.fullName, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NavyPrimary)
                                     Text(
                                         "${res.totalObtained.toInt()}/${res.totalMax.toInt()} (${String.format(Locale.US, "%.1f%%", res.percentage)}) • Grade ${res.grade}",
                                         fontSize = 11.sp,
-                                        color = Color.Gray
+                                        color = TextSecondary
                                     )
                                 }
                                 Icon(Icons.Default.Assessment, contentDescription = "View Report", tint = BlueSecondary)
@@ -1609,7 +1724,7 @@ fun AdminClassExamStudentsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = GradientRoyalBlue, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -1626,8 +1741,10 @@ fun AdminStudentReportDialog(
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
-            Text(AppStrings.get("view_report_card", lang), fontWeight = FontWeight.Bold, color = NavyPrimary)
+            Text(AppStrings.get("view_report_card", lang), fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary)
         },
         text = {
             LazyColumn(modifier = Modifier.heightIn(max = 460.dp)) {
@@ -1640,7 +1757,10 @@ fun AdminStudentReportDialog(
                         lang = lang
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(
+                    VibrantGradientButton(
+                        text = AppStrings.get("download_pdf", lang),
+                        icon = Icons.Default.Download,
+                        gradient = GradientRoyalBlue,
                         onClick = {
                             val pdfFile = ReportCardPdfGenerator.generateReportCard(
                                 context = context,
@@ -1656,18 +1776,13 @@ fun AdminStudentReportDialog(
                                 Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(AppStrings.get("download_pdf", lang))
-                    }
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = GradientEmerald, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -1686,26 +1801,31 @@ fun AdminFeesContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            AppStrings.get("fees", lang),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+        SectionHeaderRow(
+            title = AppStrings.get("fees", lang),
+            subtitle = "${feePayments.size}",
+            accentColor = RedDanger,
+            icon = Icons.Default.AccountBalanceWallet
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (feePayments.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.Payments,
+                message = AppStrings.get("no_data", lang),
+                accentColor = RedDanger
+            )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(feePayments) { p ->
+                    val cardAccent = if (p.balance > 0) RedDanger else GreenAccent
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        border = BorderStroke(1.dp, cardAccent.copy(alpha = 0.25f)),
+                        elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(
@@ -1713,32 +1833,33 @@ fun AdminFeesContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(p.studentName, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                Text(p.studentName, fontFamily = OutfitFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                                 StatusBadge(status = p.status, lang = lang)
                             }
 
                             Spacer(modifier = Modifier.height(4.dp))
 
-                            Text("${p.feeName} • ${p.className}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${p.feeName} • ${p.className}", fontSize = 12.sp, color = TextSecondary)
 
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("${AppStrings.get("amount", lang)}: $${p.amount}", fontSize = 12.sp, color = Color.Gray)
+                                Text("${AppStrings.get("amount", lang)}: $${p.amount}", fontSize = 12.sp, color = TextSecondary)
                                 Text("${AppStrings.get("amount_paid", lang)}: $${p.amountPaid}", fontSize = 12.sp, color = GreenAccent, fontWeight = FontWeight.Bold)
-                                Text("${AppStrings.get("balance", lang)}: $${p.balance}", fontSize = 12.sp, color = if (p.balance > 0) RedDanger else Color.Gray, fontWeight = FontWeight.Bold)
+                                Text("${AppStrings.get("balance", lang)}: $${p.balance}", fontSize = 12.sp, color = if (p.balance > 0) RedDanger else GreenAccent, fontWeight = FontWeight.Bold)
                             }
 
                             if (p.balance > 0) {
-                                Button(
+                                VibrantGradientButton(
+                                    text = AppStrings.get("record_payment", lang),
+                                    icon = Icons.Default.CheckCircle,
+                                    gradient = GradientEmerald,
+                                    height = 38.dp,
+                                    fontSize = 11,
                                     onClick = { showRecordPaymentDialog = p },
-                                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.align(Alignment.End).padding(top = 6.dp)
-                                ) {
-                                    Text(AppStrings.get("record_payment", lang), fontSize = 11.sp)
-                                }
+                                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
+                                )
                             }
                         }
                     }
@@ -1754,15 +1875,18 @@ fun AdminFeesContent(
 
         AlertDialog(
             onDismissRequest = { showRecordPaymentDialog = null },
-            title = { Text(AppStrings.get("record_payment", lang)) },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(22.dp),
+            title = { Text(AppStrings.get("record_payment", lang), fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary) },
             text = {
                 Column {
-                    Text("${p.studentName} • ${p.feeName}", fontWeight = FontWeight.Bold)
+                    Text("${p.studentName} • ${p.feeName}", fontWeight = FontWeight.Bold, color = BlueSecondary)
                     Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
                         value = amtStr,
                         onValueChange = { amtStr = it },
                         label = { Text(AppStrings.get("amount", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -1770,23 +1894,26 @@ fun AdminFeesContent(
                         value = receiptStr,
                         onValueChange = { receiptStr = it },
                         label = { Text(AppStrings.get("receipt_no", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("save", lang),
+                    icon = Icons.Default.Check,
+                    gradient = GradientEmerald,
+                    height = 42.dp,
                     onClick = {
                         val amt = amtStr.toDoubleOrNull() ?: p.balance
                         onRecordPayment(p.paymentId, amt, receiptStr)
                         showRecordPaymentDialog = null
                     }
-                ) {
-                    Text(AppStrings.get("save", lang))
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showRecordPaymentDialog = null }) { Text(AppStrings.get("cancel", lang)) }
+                TextButton(onClick = { showRecordPaymentDialog = null }) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
             }
         )
     }
@@ -1810,20 +1937,26 @@ fun AdminReportsContent(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Text(AppStrings.get("reports", lang), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text("${school.name} • ${school.academicYear}", fontSize = 12.sp, color = Color.Gray)
+            SectionHeaderRow(
+                title = AppStrings.get("reports", lang),
+                subtitle = "${school.name} • ${school.academicYear}",
+                accentColor = NavyLight,
+                icon = Icons.Default.Analytics
+            )
         }
 
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(2.dp)
+                border = BorderStroke(1.dp, NavyLight.copy(alpha = 0.25f)),
+                elevation = CardDefaults.cardElevation(3.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         if (lang == "so") "Warbixinta Guud ee Dugsiga" else "Executive Summary Report",
+                        fontFamily = OutfitFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = NavyPrimary
@@ -1848,11 +1981,11 @@ fun AdminReportsContent(
 @Composable
 fun ReportMetricRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, fontSize = 13.sp, color = TextSecondary)
+        Text(value, fontFamily = OutfitFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
     }
 }
 
@@ -1871,10 +2004,15 @@ fun TeacherFormDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Text(
                 AppStrings.get("teachers", lang) + " - " +
-                    AppStrings.get(if (existingTeacher == null) "add" else "edit", lang)
+                    AppStrings.get(if (existingTeacher == null) "add" else "edit", lang),
+                fontFamily = OutfitFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = NavyPrimary
             )
         },
         text = {
@@ -1892,6 +2030,7 @@ fun TeacherFormDialog(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text(AppStrings.get("full_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1900,6 +2039,7 @@ fun TeacherFormDialog(
                         value = phone,
                         onValueChange = { phone = it },
                         label = { Text(AppStrings.get("phone", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1908,24 +2048,27 @@ fun TeacherFormDialog(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text(AppStrings.get("email", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientRoyalBlue,
+                height = 42.dp,
                 onClick = {
                     if (name.isNotBlank()) {
                         onConfirm(name.trim(), phone.trim(), email.trim(), photoBase64)
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -1947,10 +2090,15 @@ fun ClassFormDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Text(
                 AppStrings.get("classes", lang) + " - " +
-                    AppStrings.get(if (existingClass == null) "add" else "edit", lang)
+                    AppStrings.get(if (existingClass == null) "add" else "edit", lang),
+                fontFamily = OutfitFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = VioletAccent
             )
         },
         text = {
@@ -1961,6 +2109,7 @@ fun ClassFormDialog(
                         onValueChange = { className = it },
                         label = { Text(AppStrings.get("class_name", lang)) },
                         placeholder = { Text("e.g. Form 1A, Grade 8") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1968,7 +2117,7 @@ fun ClassFormDialog(
                     Text(
                         AppStrings.get("select_teacher", lang),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = NavyPrimary
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -1989,10 +2138,14 @@ fun ClassFormDialog(
                                         selectedTeacherId = teacher.teacherId
                                         selectedTeacherName = teacher.fullName
                                     },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = VioletAccent,
+                                        selectedLabelColor = Color.White
+                                    ),
                                     leadingIcon = {
                                         AvatarImage(photoBase64 = teacher.photoUrl, name = teacher.fullName, size = 22.dp)
                                     },
-                                    label = { Text(teacher.fullName, fontSize = 12.sp) }
+                                    label = { Text(teacher.fullName, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                                 )
                             }
                         }
@@ -2003,6 +2156,7 @@ fun ClassFormDialog(
                         value = academicYear,
                         onValueChange = { academicYear = it },
                         label = { Text(AppStrings.get("academic_year", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -2012,24 +2166,27 @@ fun ClassFormDialog(
                         onValueChange = { accessCode = it },
                         label = { Text(AppStrings.get("class_access_code", lang)) },
                         placeholder = { Text(if (lang == "so") "Tusaale: 4819 (ikhtiyaari)" else "e.g. 4819 (auto if blank)") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientViolet,
+                height = 42.dp,
                 onClick = {
                     if (className.isNotBlank()) {
                         onConfirm(className.trim(), selectedTeacherId, selectedTeacherName, academicYear.trim(), accessCode.trim())
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -2055,7 +2212,16 @@ fun StudentFormDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(AppStrings.get("students", lang) + " - " + AppStrings.get(if (existingStudent == null) "add" else "edit", lang)) },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = {
+            Text(
+                AppStrings.get("students", lang) + " - " + AppStrings.get(if (existingStudent == null) "add" else "edit", lang),
+                fontFamily = OutfitFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = GreenAccent
+            )
+        },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
@@ -2071,6 +2237,7 @@ fun StudentFormDialog(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text(AppStrings.get("full_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -2079,6 +2246,7 @@ fun StudentFormDialog(
                         value = father,
                         onValueChange = { father = it },
                         label = { Text(AppStrings.get("father_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -2087,6 +2255,7 @@ fun StudentFormDialog(
                         value = mother,
                         onValueChange = { mother = it },
                         label = { Text(AppStrings.get("mother_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -2095,27 +2264,30 @@ fun StudentFormDialog(
                         value = phone,
                         onValueChange = { phone = it },
                         label = { Text(AppStrings.get("parent_phone", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 item {
-                    Text(AppStrings.get("gender", lang), fontSize = 12.sp)
+                    Text(AppStrings.get("gender", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                     Row {
                         FilterChip(
                             selected = gender == "M",
                             onClick = { gender = "M" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NavyLight, selectedLabelColor = Color.White),
                             label = { Text(AppStrings.get("male", lang)) }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         FilterChip(
                             selected = gender == "F",
                             onClick = { gender = "F" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = VioletAccent, selectedLabelColor = Color.White),
                             label = { Text(AppStrings.get("female", lang)) }
                         )
                     }
                 }
                 item {
-                    Text(AppStrings.get("class", lang), fontSize = 12.sp)
+                    Text(AppStrings.get("class", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(classes) { c ->
                             FilterChip(
@@ -2124,6 +2296,7 @@ fun StudentFormDialog(
                                     selectedClassId = c.classId
                                     selectedClassName = c.name
                                 },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GreenAccent, selectedLabelColor = Color.White),
                                 label = { Text(c.name) }
                             )
                         }
@@ -2132,18 +2305,20 @@ fun StudentFormDialog(
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientEmerald,
+                height = 42.dp,
                 onClick = {
                     if (name.isNotBlank()) {
                         onConfirm(name.trim(), father.trim(), mother.trim(), phone.trim(), gender, selectedClassId, selectedClassName, admDate, photoBase64)
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -2163,7 +2338,9 @@ fun CreateExamFolderDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(AppStrings.get("create_exam_folder", lang), fontWeight = FontWeight.Bold, color = NavyPrimary) },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text(AppStrings.get("create_exam_folder", lang), fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = AmberDark) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -2171,41 +2348,67 @@ fun CreateExamFolderDialog(
                     onValueChange = { folderName = it },
                     label = { Text(AppStrings.get("folder_name", lang)) },
                     placeholder = { Text("e.g. Midterm Term 1 / Final 2026") },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text(AppStrings.get("exam_type", lang), fontSize = 12.sp)
+                Text(AppStrings.get("exam_type", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    item { FilterChip(selected = type == "MONTHLY", onClick = { type = "MONTHLY" }, label = { Text("Monthly") }) }
-                    item { FilterChip(selected = type == "MIDTERM", onClick = { type = "MIDTERM" }, label = { Text("Midterm") }) }
-                    item { FilterChip(selected = type == "FINAL", onClick = { type = "FINAL" }, label = { Text("Final") }) }
+                    item {
+                        FilterChip(
+                            selected = type == "MONTHLY",
+                            onClick = { type = "MONTHLY" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NavyLight, selectedLabelColor = Color.White),
+                            label = { Text("Monthly") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = type == "MIDTERM",
+                            onClick = { type = "MIDTERM" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = AmberDark, selectedLabelColor = Color.White),
+                            label = { Text("Midterm") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = type == "FINAL",
+                            onClick = { type = "FINAL" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GreenAccent, selectedLabelColor = Color.White),
+                            label = { Text("Final") }
+                        )
+                    }
                 }
                 OutlinedTextField(
                     value = year,
                     onValueChange = { year = it },
                     label = { Text(AppStrings.get("academic_year", lang)) },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = desc,
                     onValueChange = { desc = it },
                     label = { Text(AppStrings.get("description", lang)) },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.CreateNewFolder,
+                gradient = GradientAmber,
+                height = 42.dp,
                 onClick = {
                     if (folderName.isNotBlank()) {
                         onConfirm(folderName.trim(), type, year.trim(), desc.trim())
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -2227,24 +2430,30 @@ fun AdminSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(AppStrings.get("settings", lang)) },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text(AppStrings.get("settings", lang), fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("School Name") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Address") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Academic Year") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(value = passcode, onValueChange = { passcode = it }, label = { Text("Master Admin Passcode") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("School Name") }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Address") }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Academic Year") }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = passcode, onValueChange = { passcode = it }, label = { Text("Master Admin Passcode") }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) }
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(name, address, phone, email, year, passcode) }) {
-                Text(AppStrings.get("save", lang))
-            }
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientRoyalBlue,
+                height = 42.dp,
+                onClick = { onSave(name, address, phone, email, year, passcode) }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }

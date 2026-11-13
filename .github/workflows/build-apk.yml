@@ -28,9 +28,9 @@ jobs:
           keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Build Debug APK
         run: gradle :app:assembleDebug --no-daemon
-      - name: Upload APK to v1.1.0 Release
+      - name: Upload APK to v1.2.0 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk IftinSchool-v1.1.0.apk
-          gh release upload v1.1.0 IftinSchool-v1.1.0.apk --clobber
+          cp app/build/outputs/apk/debug/app-debug.apk IftinSchool-v1.2.0.apk
+          gh release upload v1.2.0 IftinSchool-v1.2.0.apk --clobber

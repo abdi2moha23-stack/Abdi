@@ -2,10 +2,16 @@ package com.example.ui.screens
 
 import android.app.Activity
 import android.util.Log
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +24,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,7 +52,6 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
 import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
@@ -116,12 +125,30 @@ fun WelcomePortalScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        NavyPrimary,
-                        NavyDark,
-                        Color(0xFF0A192F)
+                        Color(0xFF0A1636),
+                        Color(0xFF152C6B),
+                        Color(0xFF0B1E45),
+                        Color(0xFF07122B)
                     )
                 )
             )
+            .drawBehind {
+                drawCircle(
+                    color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+                    radius = size.width * 0.55f,
+                    center = Offset(size.width * 0.88f, size.height * 0.08f)
+                )
+                drawCircle(
+                    color = Color(0xFF10B981).copy(alpha = 0.11f),
+                    radius = size.width * 0.5f,
+                    center = Offset(size.width * 0.08f, size.height * 0.45f)
+                )
+                drawCircle(
+                    color = Color(0xFFF59E0B).copy(alpha = 0.08f),
+                    radius = size.width * 0.45f,
+                    center = Offset(size.width * 0.85f, size.height * 0.85f)
+                )
+            }
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState()),
@@ -131,98 +158,164 @@ fun WelcomePortalScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.End,
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = NavyLight.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(50),
+                color = Color.White.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(GreenLight)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = schoolConfig.academicYear,
+                        color = Color.White,
+                        fontFamily = MonoFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = Color.White.copy(alpha = 0.14f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
                 modifier = Modifier.testTag("welcome_language_toggle")
             ) {
                 Row(modifier = Modifier.padding(4.dp)) {
-                    Button(
+                    Surface(
                         onClick = { viewModel.setLanguage("so") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (lang == "so") AmberWarning else Color.Transparent,
-                            contentColor = if (lang == "so") Color.Black else Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(50),
+                        color = if (lang == "so") AmberWarning else Color.Transparent,
                         modifier = Modifier.height(32.dp)
                     ) {
-                        Text("Somali", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 14.dp)
+                        ) {
+                            Text(
+                                "Somali",
+                                color = if (lang == "so") Color(0xFF0F172A) else Color.White,
+                                fontFamily = OutfitFontFamily,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    Button(
+                    Surface(
                         onClick = { viewModel.setLanguage("en") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (lang == "en") AmberWarning else Color.Transparent,
-                            contentColor = if (lang == "en") Color.Black else Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(50),
+                        color = if (lang == "en") AmberWarning else Color.Transparent,
                         modifier = Modifier.height(32.dp)
                     ) {
-                        Text("English", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 14.dp)
+                        ) {
+                            Text(
+                                "English",
+                                color = if (lang == "en") Color(0xFF0F172A) else Color.White,
+                                fontFamily = OutfitFontFamily,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // School Emblem & Logo
+        // Luminous Halo School Emblem
         Box(
             modifier = Modifier
-                .size(110.dp)
+                .size(126.dp)
                 .clip(CircleShape)
-                .border(3.dp, AmberWarning, CircleShape)
-                .background(Color.White),
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            AmberWarning.copy(alpha = 0.35f),
+                            BlueLight.copy(alpha = 0.15f),
+                            Color.Transparent
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.school_logo),
-                contentDescription = "School Logo",
+            Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+                    .size(108.dp)
+                    .shadow(14.dp, CircleShape, ambientColor = AmberWarning, spotColor = BlueLight)
+                    .clip(CircleShape)
+                    .border(
+                        3.dp,
+                        Brush.linearGradient(listOf(AmberWarning, BlueLight, GreenLight)),
+                        CircleShape
+                    )
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.school_logo),
+                    contentDescription = "School Logo",
+                    modifier = Modifier
+                        .size(94.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // School Name & Motto
         Text(
             text = schoolConfig.name.uppercase(java.util.Locale.ROOT),
+            fontFamily = OutfitFontFamily,
             color = Color.White,
-            fontSize = 24.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp,
+            letterSpacing = 1.2.sp,
             textAlign = TextAlign.Center
         )
 
         Text(
             text = schoolConfig.motto,
-            color = BlueLight,
+            color = Color(0xFF7DD3FC),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
         )
 
-        // Single School Restriction Badge
+        // Single School Restriction Pill Badge
         Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF2B6CB0).copy(alpha = 0.35f),
-            border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(AmberWarning, BlueLight))),
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+            shape = RoundedCornerShape(50),
+            color = Color(0xFF1E40AF).copy(alpha = 0.45f),
+            border = BorderStroke(
+                1.dp,
+                Brush.horizontalGradient(listOf(AmberWarning, BlueLight, GreenLight))
+            ),
+            modifier = Modifier.padding(top = 8.dp, bottom = 22.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -236,38 +329,52 @@ fun WelcomePortalScreen(
                     text = "Single School System • ID: ${schoolConfig.schoolId}",
                     color = Color.White,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
 
         // Section Title: Select Portal
-        Text(
-            text = AppStrings.get("select_role", lang),
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-        )
+                .padding(horizontal = 22.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Brush.verticalGradient(listOf(AmberWarning, GreenLight)))
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = AppStrings.get("select_role", lang),
+                fontFamily = OutfitFontFamily,
+                color = Color.White,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
-        // 3 Role Cards: ADMIN, TEACHER, PARENT
+        // 3 Vibrant Jewel-Toned Role Cards
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Role 1: ADMIN
+            // Role 1: ADMIN (Royal Blue + Golden Amber)
             RolePortalCard(
                 title = AppStrings.get("admin", lang),
                 portalName = AppStrings.get("admin_portal", lang),
                 desc = if (lang == "so") "Maamul ardayda, macallimiinta, fasalada, imtixaannada & lacagaha" else "Manage teachers, students, classes, examinations & finances",
                 icon = Icons.Default.AdminPanelSettings,
                 accentColor = AmberWarning,
-                bgGradient = listOf(Color(0xFF1E3A8A), Color(0xFF172554)),
+                bgGradient = listOf(Color(0xFF1D4ED8), Color(0xFF1E3A8A), Color(0xFF0F172A)),
                 tag = "portal_admin_button",
+                actionLabel = if (lang == "so") "Gal" else "Open",
                 onClick = {
                     if (currentUser == null) {
                         signInWithGoogle {
@@ -281,15 +388,16 @@ fun WelcomePortalScreen(
                 }
             )
 
-            // Role 2: TEACHER
+            // Role 2: TEACHER (Electric Sky Blue + Cyan)
             RolePortalCard(
                 title = AppStrings.get("teacher", lang),
                 portalName = AppStrings.get("teacher_portal", lang),
                 desc = if (lang == "so") "Fur fasalkaaga, xaadiriska, buundooyinka ardayda, fiiga & fariimaha" else "Class password login, attendance, marks entry, fees & remarks",
                 icon = Icons.Default.School,
                 accentColor = BlueLight,
-                bgGradient = listOf(Color(0xFF1E40AF), Color(0xFF1E293B)),
+                bgGradient = listOf(Color(0xFF0284C7), Color(0xFF1D4ED8), Color(0xFF172554)),
                 tag = "portal_teacher_button",
+                actionLabel = if (lang == "so") "Gal" else "Open",
                 onClick = {
                     if (currentUser == null) {
                         signInWithGoogle {
@@ -301,15 +409,16 @@ fun WelcomePortalScreen(
                 }
             )
 
-            // Role 3: PARENT
+            // Role 3: PARENT (Emerald Green + Mint)
             RolePortalCard(
                 title = AppStrings.get("parent", lang),
                 portalName = AppStrings.get("parent_portal", lang),
                 desc = if (lang == "so") "Natiijooyinka carruurtaada, xaadiriska, fiiga & fariimaha macallinka" else "Track child report cards, daily attendance, fee receipts & remarks",
                 icon = Icons.Default.FamilyRestroom,
-                accentColor = GreenLight,
-                bgGradient = listOf(Color(0xFF065F46), Color(0xFF0F172A)),
+                accentColor = Color(0xFF34D399),
+                bgGradient = listOf(Color(0xFF059669), Color(0xFF047857), Color(0xFF064E3B)),
                 tag = "portal_parent_button",
+                actionLabel = if (lang == "so") "Gal" else "Open",
                 onClick = {
                     if (currentUser == null) {
                         signInWithGoogle {
@@ -328,100 +437,153 @@ fun WelcomePortalScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
-        // Active Sign-in status / Google Button
+        // Active Sign-in status / Glossy Google Button
         if (currentUser == null) {
-            Button(
+            Surface(
                 onClick = { signInWithGoogle() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.5.dp, Brush.horizontalGradient(GradientRoyalBlue)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .height(50.dp)
+                    .padding(horizontal = 18.dp)
+                    .height(54.dp)
                     .testTag("google_sign_in_button")
             ) {
-                if (isSigningIn) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = NavyPrimary)
-                } else {
-                    Icon(
-                        Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        tint = NavyPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        AppStrings.get("sign_in_google", lang),
-                        color = NavyPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    if (isSigningIn) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = NavyLight)
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(GradientRoyalBlue)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.AccountCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            AppStrings.get("sign_in_google", lang),
+                            fontFamily = OutfitFontFamily,
+                            color = NavyPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
                 }
             }
         } else {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = NavyDark.copy(alpha = 0.8f)),
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 18.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
-                        Text(
-                            text = currentUser?.displayName ?: "User",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = currentUser?.email ?: "",
-                            color = BlueLight,
-                            fontSize = 12.sp
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(GradientEmerald)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = currentUser?.displayName ?: "User",
+                                fontFamily = OutfitFontFamily,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = currentUser?.email ?: "",
+                                color = Color(0xFFBAE6FD),
+                                fontSize = 12.sp
+                            )
+                        }
                     }
 
-                    OutlinedButton(
+                    VibrantGradientButton(
+                        text = AppStrings.get("sign_out", lang),
                         onClick = { viewModel.signOut {} },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFC8181)),
+                        gradient = GradientCrimson,
+                        height = 38.dp,
+                        fontSize = 12,
                         modifier = Modifier.testTag("welcome_sign_out_button")
-                    ) {
-                        Text(AppStrings.get("sign_out", lang), fontSize = 12.sp)
-                    }
+                    )
                 }
             }
         }
 
         if (authError != null) {
-            Text(
-                text = authError ?: "",
-                color = Color(0xFFFEB2B2),
-                fontSize = 12.sp,
-                modifier = Modifier.padding(16.dp),
-                textAlign = TextAlign.Center
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = RedDanger.copy(alpha = 0.2f),
+                border = BorderStroke(1.dp, RedLight.copy(alpha = 0.6f)),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = authError ?: "",
+                    color = Color(0xFFFECACA),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(12.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(28.dp))
     }
 
     // Admin Passcode Dialog
     if (showAdminPasscodeDialog) {
         AlertDialog(
             onDismissRequest = { showAdminPasscodeDialog = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(22.dp),
             title = {
-                Text(
-                    AppStrings.get("admin_portal", lang),
-                    fontWeight = FontWeight.Bold,
-                    color = NavyPrimary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(GradientRoyalBlue)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Security, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        AppStrings.get("admin_portal", lang),
+                        fontFamily = OutfitFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        color = NavyPrimary
+                    )
+                }
             },
             text = {
                 Column {
@@ -431,7 +593,7 @@ fun WelcomePortalScreen(
                         else
                             "Enter the administrator security passcode (Master Passcode: IFTIN#2026):",
                         fontSize = 13.sp,
-                        color = Color.DarkGray
+                        color = TextSecondary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
@@ -443,6 +605,7 @@ fun WelcomePortalScreen(
                         label = { Text(AppStrings.get("admin_access_code", lang)) },
                         visualTransformation = PasswordVisualTransformation(),
                         isError = passcodeError,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("admin_passcode_input")
@@ -450,15 +613,20 @@ fun WelcomePortalScreen(
                     if (passcodeError) {
                         Text(
                             AppStrings.get("invalid_passcode", lang),
-                            color = MaterialTheme.colorScheme.error,
+                            color = RedDanger,
                             fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
             },
             confirmButton = {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("verify", lang),
+                    icon = Icons.Default.VerifiedUser,
+                    gradient = GradientRoyalBlue,
+                    height = 42.dp,
                     onClick = {
                         viewModel.verifyAdminPasscode(
                             enteredPasscode = adminPasscode,
@@ -469,15 +637,12 @@ fun WelcomePortalScreen(
                             onError = { passcodeError = true }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
                     modifier = Modifier.testTag("admin_passcode_submit")
-                ) {
-                    Text(AppStrings.get("verify", lang))
-                }
+                )
             },
             dismissButton = {
                 TextButton(onClick = { showAdminPasscodeDialog = false }) {
-                    Text(AppStrings.get("cancel", lang))
+                    Text(AppStrings.get("cancel", lang), color = RedDanger, fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -487,12 +652,27 @@ fun WelcomePortalScreen(
     if (showParentRegisterDialog) {
         AlertDialog(
             onDismissRequest = { showParentRegisterDialog = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(22.dp),
             title = {
-                Text(
-                    AppStrings.get("create_parent_room", lang),
-                    fontWeight = FontWeight.Bold,
-                    color = GreenAccent
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(GradientEmerald)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.FamilyRestroom, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        AppStrings.get("create_parent_room", lang),
+                        fontFamily = OutfitFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        color = GreenAccent
+                    )
+                }
             },
             text = {
                 Text(
@@ -500,26 +680,28 @@ fun WelcomePortalScreen(
                         "Ma doonaysaa in aad samaysato qolka waalidka ee Iftin Academy si aad ula socoto carruurtaada?"
                     else
                         "Do you want to create your Parent Room for Iftin Academy to monitor your children's progress?",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    color = TextSecondary
                 )
             },
             confirmButton = {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("create_parent_room", lang),
+                    icon = Icons.Default.CheckCircle,
+                    gradient = GradientEmerald,
+                    height = 42.dp,
                     onClick = {
                         viewModel.createParentRoom {
                             showParentRegisterDialog = false
                             onNavigateToParent()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
                     modifier = Modifier.testTag("create_parent_room_confirm")
-                ) {
-                    Text(AppStrings.get("create_parent_room", lang))
-                }
+                )
             },
             dismissButton = {
                 TextButton(onClick = { showParentRegisterDialog = false }) {
-                    Text(AppStrings.get("cancel", lang))
+                    Text(AppStrings.get("cancel", lang), color = RedDanger, fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -535,22 +717,45 @@ fun RolePortalCard(
     accentColor: Color,
     bgGradient: List<Color>,
     tag: String,
+    actionLabel: String = "Open",
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "role_card_scale"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .scale(scale)
+            .shadow(10.dp, RoundedCornerShape(20.dp), ambientColor = bgGradient.first(), spotColor = accentColor)
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(color = accentColor),
+                onClick = onClick
+            )
             .testTag(tag),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
                 .background(Brush.horizontalGradient(bgGradient))
-                .border(1.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                .padding(18.dp)
+                .border(1.5.dp, accentColor.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                .drawBehind {
+                    drawCircle(
+                        color = accentColor.copy(alpha = 0.14f),
+                        radius = size.height * 0.9f,
+                        center = Offset(size.width * 0.95f, size.height * 0.2f)
+                    )
+                }
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -558,9 +763,10 @@ fun RolePortalCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.2f)),
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(accentColor.copy(alpha = 0.22f))
+                        .border(1.2.dp, accentColor.copy(alpha = 0.6f), RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -571,28 +777,29 @@ fun RolePortalCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = title,
+                            fontFamily = OutfitFontFamily,
                             color = Color.White,
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(accentColor.copy(alpha = 0.25f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = accentColor.copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
                         ) {
                             Text(
                                 text = portalName,
                                 color = accentColor,
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -601,18 +808,38 @@ fun RolePortalCard(
 
                     Text(
                         text = desc,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = Color.White.copy(alpha = 0.86f),
                         fontSize = 12.sp,
                         lineHeight = 16.sp
                     )
                 }
 
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(24.dp)
-                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = accentColor,
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = actionLabel,
+                            color = Color(0xFF0F172A),
+                            fontFamily = OutfitFontFamily,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
     }

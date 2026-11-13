@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -37,7 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.ui.theme.BlueSecondary
+import com.example.ui.theme.BlueSurface
+import com.example.ui.theme.GreenAccent
+import com.example.ui.theme.GreenLight
+import com.example.ui.theme.NavyLight
 import com.example.ui.theme.NavyPrimary
+import com.example.ui.theme.RedDanger
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 
@@ -97,20 +104,25 @@ fun AvatarImage(
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
-                .border(1.5.dp, accentColor.copy(alpha = 0.4f), CircleShape)
+                .border(2.dp, accentColor, CircleShape)
         )
     } else {
         Box(
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.15f)),
+                .background(
+                    Brush.linearGradient(
+                        listOf(accentColor, accentColor.copy(alpha = 0.72f))
+                    )
+                )
+                .border(1.5.dp, Color.White.copy(alpha = 0.65f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = name.trim().take(2).uppercase(Locale.ROOT).ifBlank { "?" },
-                fontWeight = FontWeight.Bold,
-                color = accentColor,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
                 fontSize = (size.value * 0.34f).sp
             )
         }
@@ -157,81 +169,97 @@ fun PhotoPickerSection(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFFF8FAFC))
-            .padding(10.dp)
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = BlueSurface.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.28f))
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = NavyPrimary
-        )
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = NavyPrimary
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            AvatarImage(photoBase64 = photoBase64, name = "Photo", size = 54.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AvatarImage(
+                    photoBase64 = photoBase64,
+                    name = "Photo",
+                    size = 56.dp,
+                    accentColor = NavyLight
+                )
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            galleryLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                galleryLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NavyLight,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (lang == "so") "Sawir Dooro" else "Gallery", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                val hasPerm = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (hasPerm) {
+                                    cameraLauncher.launch(null)
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GreenAccent,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (lang == "so") "Ka Qaad" else "Camera", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    if (photoBase64.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = { onPhotoChanged("") },
+                            border = BorderStroke(1.dp, RedDanger.copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = RedDanger),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                if (lang == "so") "Ka saar sawirka" else "Remove photo",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
-                        },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (lang == "so") "Sawir Dooro" else "Gallery", fontSize = 11.sp)
-                    }
-
-                    Button(
-                        onClick = {
-                            val hasPerm = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (hasPerm) {
-                                cameraLauncher.launch(null)
-                            } else {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = BlueSecondary),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (lang == "so") "Ka Qaad" else "Camera", fontSize = 11.sp)
-                    }
-                }
-
-                if (photoBase64.isNotBlank()) {
-                    TextButton(
-                        onClick = { onPhotoChanged("") },
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        modifier = Modifier.height(26.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Red)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            if (lang == "so") "Ka saar sawirka" else "Remove photo",
-                            fontSize = 11.sp,
-                            color = Color.Red
-                        )
+                        }
                     }
                 }
             }

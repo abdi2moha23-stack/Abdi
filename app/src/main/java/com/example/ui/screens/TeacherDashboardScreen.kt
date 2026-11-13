@@ -1,8 +1,12 @@
 package com.example.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,11 +21,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.models.*
@@ -55,7 +64,6 @@ fun TeacherDashboardScreen(
 
     val isCurrentClassUnlocked = selectedClass != null && selectedClass!!.classId in unlockedClassIds
 
-    // Filter by selected class
     val classStudents = remember(allStudents, selectedClass) {
         if (selectedClass != null) allStudents.filter { it.classId == selectedClass?.classId } else emptyList()
     }
@@ -79,7 +87,6 @@ fun TeacherDashboardScreen(
     var openedFeeFolder by remember { mutableStateOf<Fee?>(null) }
     var showRemarkDialogStudent by remember { mutableStateOf<Student?>(null) }
 
-    // Class switch password prompt state
     var pendingUnlockClass by remember { mutableStateOf<ClassRoom?>(null) }
 
     Scaffold(
@@ -94,33 +101,36 @@ fun TeacherDashboardScreen(
                     onBack = onBack
                 )
 
-                // Class Selector Bar (with Lock/Unlock indicator)
+                // Vibrant Class Selector Strip
                 Surface(
-                    color = BlueSurface,
-                    tonalElevation = 2.dp,
+                    color = Color.White,
+                    shadowElevation = 3.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .background(Brush.horizontalGradient(listOf(BlueSurface.copy(alpha = 0.65f), GreenBackground.copy(alpha = 0.45f))))
+                            .padding(horizontal = 16.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             "${AppStrings.get("class", lang)}: ",
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = OutfitFontFamily,
+                            fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp,
                             color = NavyPrimary
                         )
 
                         if (classes.isEmpty()) {
-                            Text(if (lang == "so") "Weli fasal lama abuurin" else "No classes created yet", fontSize = 12.sp, color = Color.Gray)
+                            Text(if (lang == "so") "Weli fasal lama abuurin" else "No classes created yet", fontSize = 12.sp, color = TextSecondary)
                         } else {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(classes) { c ->
                                     val unlocked = c.classId in unlockedClassIds
+                                    val active = selectedClass?.classId == c.classId && unlocked
                                     FilterChip(
-                                        selected = selectedClass?.classId == c.classId && unlocked,
+                                        selected = active,
                                         onClick = {
                                             if (unlocked) {
                                                 viewModel.selectTeacherClass(c)
@@ -132,14 +142,16 @@ fun TeacherDashboardScreen(
                                             Icon(
                                                 if (unlocked) Icons.Default.LockOpen else Icons.Default.Lock,
                                                 contentDescription = null,
+                                                tint = if (active) AmberWarning else if (unlocked) GreenAccent else AmberDark,
                                                 modifier = Modifier.size(15.dp)
                                             )
                                         },
                                         label = { Text(c.name, fontWeight = FontWeight.Bold) },
                                         colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = NavyPrimary,
-                                            selectedLabelColor = Color.White,
-                                            selectedLeadingIconColor = AmberWarning
+                                            containerColor = Color.White,
+                                            labelColor = NavyPrimary,
+                                            selectedContainerColor = NavyLight,
+                                            selectedLabelColor = Color.White
                                         ),
                                         modifier = Modifier.testTag("teacher_class_chip_${c.classId}")
                                     )
@@ -167,7 +179,6 @@ fun TeacherDashboardScreen(
                 .background(BackgroundLight)
         ) {
             if (!isCurrentClassUnlocked) {
-                // MANDATORY Class Selection + Password Gate
                 ClassPasswordGateScreen(
                     lang = lang,
                     classes = classes,
@@ -253,7 +264,6 @@ fun TeacherDashboardScreen(
         }
     }
 
-    // Class Switch Password Dialog when clicking a locked chip in top bar
     if (pendingUnlockClass != null && isCurrentClassUnlocked) {
         val target = pendingUnlockClass!!
         var enteredPw by remember(target) { mutableStateOf("") }
@@ -261,18 +271,29 @@ fun TeacherDashboardScreen(
 
         AlertDialog(
             onDismissRequest = { pendingUnlockClass = null },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(22.dp),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = NavyPrimary)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("${target.name} • ${AppStrings.get("class_access_code", lang)}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(GradientRoyalBlue)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("${target.name} • ${AppStrings.get("class_access_code", lang)}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = NavyPrimary)
                 }
             },
             text = {
                 Column {
                     Text(
                         if (lang == "so") "Geli furaha sirta ee fasalka ${target.name}:" else "Enter the access password for ${target.name}:",
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        color = TextSecondary
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
@@ -284,15 +305,20 @@ fun TeacherDashboardScreen(
                         label = { Text(AppStrings.get("class_access_code", lang)) },
                         visualTransformation = PasswordVisualTransformation(),
                         isError = pwError,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (pwError) {
-                        Text(AppStrings.get("invalid_passcode", lang), color = RedDanger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                        Text(AppStrings.get("invalid_passcode", lang), color = RedDanger, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             },
             confirmButton = {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("unlock_class", lang),
+                    icon = Icons.Default.LockOpen,
+                    gradient = GradientRoyalBlue,
+                    height = 42.dp,
                     onClick = {
                         if (viewModel.unlockClass(target, enteredPw)) {
                             pendingUnlockClass = null
@@ -300,17 +326,14 @@ fun TeacherDashboardScreen(
                             pwError = true
                         }
                     }
-                ) {
-                    Text(AppStrings.get("unlock_class", lang))
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { pendingUnlockClass = null }) { Text(AppStrings.get("cancel", lang)) }
+                TextButton(onClick = { pendingUnlockClass = null }) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
             }
         )
     }
 
-    // Register / Edit Student Dialog (Optional Photo via Gallery or Camera)
     if (showRegisterStudentDialog && selectedClass != null) {
         TeacherRegisterStudentDialog(
             lang = lang,
@@ -352,7 +375,6 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Create Exam Dialog (with Admin ExamFolder picker)
     if (showCreateExamDialog && selectedClass != null) {
         TeacherCreateExamDialog(
             lang = lang,
@@ -377,7 +399,6 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Enter Marks Dialog (includes per-student teacherRemarks explaining what the student deserves)
     if (showEnterMarksExam != null) {
         TeacherEnterMarksDialog(
             exam = showEnterMarksExam!!,
@@ -388,7 +409,6 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // All-Students Report Cards Dialog (Beautiful Table UI + PDF Download for EVERY student)
     if (showAllReportCardsExam != null) {
         TeacherAllReportCardsDialog(
             exam = showAllReportCardsExam!!,
@@ -400,7 +420,6 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Create Class Fee Folder Dialog
     if (showCreateFeeDialog && selectedClass != null) {
         TeacherCreateFeeDialog(
             lang = lang,
@@ -420,7 +439,6 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Opened Fee Folder Dialog ("Gudbi" button in top corner + every student with "Bixiyay" button)
     if (openedFeeFolder != null) {
         val currentFee = classFees.firstOrNull { it.feeId == openedFeeFolder!!.feeId } ?: openedFeeFolder!!
         TeacherFeeFolderDialog(
@@ -438,7 +456,6 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Write Remark Dialog
     if (showRemarkDialogStudent != null) {
         val st = showRemarkDialogStudent!!
         TeacherWriteRemarkDialog(
@@ -476,46 +493,54 @@ fun ClassPasswordGateScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(82.dp)
                     .clip(CircleShape)
-                    .background(NavyPrimary.copy(alpha = 0.12f)),
+                    .background(Brush.linearGradient(GradientRoyalBlue))
+                    .border(3.dp, AmberWarning, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.LockPerson, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(38.dp))
+                Icon(Icons.Default.LockPerson, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
             }
         }
 
         item {
-            Text(
-                text = AppStrings.get("enter_class_password", lang),
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold,
-                color = NavyPrimary
-            )
-            Text(
-                text = if (lang == "so")
-                    "Macallin kasta waa inuu doortaa fasalkiisa kadibna uu geliyaa furaha sirta ah ee fasalkaas si uu u galo."
-                else
-                    "Select your assigned class and enter its class password to access attendance, students, exams, and fees.",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = AppStrings.get("enter_class_password", lang),
+                    fontFamily = OutfitFontFamily,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NavyPrimary,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = if (lang == "so")
+                        "Macallin kasta waa inuu doortaa fasalkiisa kadibna uu geliyaa furaha sirta ah ee fasalkaas si uu u galo."
+                    else
+                        "Select your assigned class and enter its class password to access attendance, students, exams, and fees.",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
         }
 
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(3.dp)
+                border = BorderStroke(1.2.dp, NavyLight.copy(alpha = 0.25f)),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         if (lang == "so") "1. Dooro Fasalka:" else "1. Select Class:",
+                        fontFamily = OutfitFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = NavyPrimary
@@ -525,7 +550,8 @@ fun ClassPasswordGateScreen(
                         Text(
                             if (lang == "so") "Maamulaha weli ma abuurin fasallo." else "No classes available yet. Contact Admin.",
                             fontSize = 13.sp,
-                            color = RedDanger
+                            color = RedDanger,
+                            fontWeight = FontWeight.SemiBold
                         )
                     } else {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -538,6 +564,11 @@ fun ClassPasswordGateScreen(
                                         pickedClass = c
                                         showError = false
                                     },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = NavyLight,
+                                        selectedLabelColor = Color.White,
+                                        selectedLeadingIconColor = AmberWarning
+                                    ),
                                     leadingIcon = {
                                         Icon(
                                             if (unlocked) Icons.Default.LockOpen else Icons.Default.Lock,
@@ -545,21 +576,29 @@ fun ClassPasswordGateScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                     },
-                                    label = { Text(c.name, fontWeight = FontWeight.SemiBold) }
+                                    label = { Text(c.name, fontWeight = FontWeight.Bold) }
                                 )
                             }
                         }
                     }
 
                     if (pickedClass != null) {
-                        Text(
-                            "${AppStrings.get("class_teacher", lang)}: ${pickedClass!!.classTeacherName.ifBlank { "-" }}",
-                            fontSize = 12.sp,
-                            color = BlueSecondary
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = BlueSurface
+                        ) {
+                            Text(
+                                "${AppStrings.get("class_teacher", lang)}: ${pickedClass!!.classTeacherName.ifBlank { "-" }}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NavyPrimary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
 
                         Text(
                             if (lang == "so") "2. Geli Furaha Sirta Fasalka (${pickedClass!!.name}):" else "2. Enter Password for ${pickedClass!!.name}:",
+                            fontFamily = OutfitFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = NavyPrimary
@@ -574,6 +613,7 @@ fun ClassPasswordGateScreen(
                             label = { Text(AppStrings.get("class_access_code", lang)) },
                             visualTransformation = PasswordVisualTransformation(),
                             isError = showError,
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("teacher_class_password_input")
@@ -583,30 +623,29 @@ fun ClassPasswordGateScreen(
                             Text(
                                 AppStrings.get("invalid_passcode", lang),
                                 color = RedDanger,
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
 
-                        Button(
+                        VibrantGradientButton(
+                            text = AppStrings.get("unlock_class", lang),
+                            icon = Icons.Default.LockOpen,
+                            gradient = GradientRoyalBlue,
+                            height = 50.dp,
+                            fontSize = 14,
                             onClick = {
-                                val target = pickedClass ?: return@Button
+                                val target = pickedClass ?: return@VibrantGradientButton
                                 if (onVerifyPassword(target, password)) {
                                     onUnlockSuccess(target)
                                 } else {
                                     showError = true
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
                                 .testTag("teacher_unlock_class_button")
-                        ) {
-                            Icon(Icons.Default.LockOpen, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(AppStrings.get("unlock_class", lang), fontWeight = FontWeight.Bold)
-                        }
+                        )
                     }
                 }
             }
@@ -620,42 +659,53 @@ fun TeacherBottomNavigation(
     lang: String,
     onSelectTab: (String) -> Unit
 ) {
-    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        NavigationBarItem(
-            selected = currentTab == "DASHBOARD",
-            onClick = { onSelectTab("DASHBOARD") },
-            icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
-            label = { Text(AppStrings.get("dashboard", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("teacher_nav_dashboard")
-        )
-        NavigationBarItem(
-            selected = currentTab == "STUDENTS",
-            onClick = { onSelectTab("STUDENTS") },
-            icon = { Icon(Icons.Default.School, contentDescription = null) },
-            label = { Text(AppStrings.get("students", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("teacher_nav_students")
-        )
-        NavigationBarItem(
-            selected = currentTab == "ATTENDANCE",
-            onClick = { onSelectTab("ATTENDANCE") },
-            icon = { Icon(Icons.Default.Checklist, contentDescription = null) },
-            label = { Text(AppStrings.get("attendance", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("teacher_nav_attendance")
-        )
-        NavigationBarItem(
-            selected = currentTab == "EXAMS",
-            onClick = { onSelectTab("EXAMS") },
-            icon = { Icon(Icons.Default.Assignment, contentDescription = null) },
-            label = { Text(AppStrings.get("exams", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("teacher_nav_exams")
-        )
-        NavigationBarItem(
-            selected = currentTab == "FEES",
-            onClick = { onSelectTab("FEES") },
-            icon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
-            label = { Text(AppStrings.get("fees", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("teacher_nav_fees")
-        )
+    Surface(
+        color = Color.White,
+        shadowElevation = 10.dp,
+        border = BorderStroke(1.dp, BorderLight.copy(alpha = 0.6f))
+    ) {
+        NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
+            NavigationBarItem(
+                selected = currentTab == "DASHBOARD",
+                onClick = { onSelectTab("DASHBOARD") },
+                icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
+                label = { Text(AppStrings.get("dashboard", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(selectedIconColor = NavyLight, selectedTextColor = NavyLight, indicatorColor = BlueSurface),
+                modifier = Modifier.testTag("teacher_nav_dashboard")
+            )
+            NavigationBarItem(
+                selected = currentTab == "STUDENTS",
+                onClick = { onSelectTab("STUDENTS") },
+                icon = { Icon(Icons.Default.School, contentDescription = null) },
+                label = { Text(AppStrings.get("students", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(selectedIconColor = BlueSecondary, selectedTextColor = BlueSecondary, indicatorColor = BlueSurface),
+                modifier = Modifier.testTag("teacher_nav_students")
+            )
+            NavigationBarItem(
+                selected = currentTab == "ATTENDANCE",
+                onClick = { onSelectTab("ATTENDANCE") },
+                icon = { Icon(Icons.Default.Checklist, contentDescription = null) },
+                label = { Text(AppStrings.get("attendance", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(selectedIconColor = GreenAccent, selectedTextColor = GreenAccent, indicatorColor = GreenBackground),
+                modifier = Modifier.testTag("teacher_nav_attendance")
+            )
+            NavigationBarItem(
+                selected = currentTab == "EXAMS",
+                onClick = { onSelectTab("EXAMS") },
+                icon = { Icon(Icons.Default.Assignment, contentDescription = null) },
+                label = { Text(AppStrings.get("exams", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(selectedIconColor = VioletAccent, selectedTextColor = VioletAccent, indicatorColor = VioletBackground),
+                modifier = Modifier.testTag("teacher_nav_exams")
+            )
+            NavigationBarItem(
+                selected = currentTab == "FEES",
+                onClick = { onSelectTab("FEES") },
+                icon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
+                label = { Text(AppStrings.get("fees", lang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                colors = NavigationBarItemDefaults.colors(selectedIconColor = RedDanger, selectedTextColor = RedDanger, indicatorColor = RedBackground),
+                modifier = Modifier.testTag("teacher_nav_fees")
+            )
+        }
     }
 }
 
@@ -680,41 +730,61 @@ fun TeacherOverviewContent(
     ) {
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = selectedClass?.name ?: "No Class Selected",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "${AppStrings.get("academic_year", lang)}: ${selectedClass?.academicYear ?: "2025-2026"}",
-                        fontSize = 12.sp,
-                        color = BlueLight
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$studentsCount", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            Text(AppStrings.get("total_students", lang), fontSize = 11.sp, color = BlueLight)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(GradientCobaltDeep))
+                        .drawBehind {
+                            drawCircle(
+                                color = Color(0xFF10B981).copy(alpha = 0.22f),
+                                radius = size.height * 0.85f,
+                                center = Offset(size.width * 0.9f, size.height * 0.15f)
+                            )
                         }
+                        .padding(18.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = selectedClass?.name ?: "No Class Selected",
+                            fontFamily = OutfitFontFamily,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "${AppStrings.get("academic_year", lang)}: ${selectedClass?.academicYear ?: "2025-2026"}",
+                            fontSize = 12.sp,
+                            color = Color(0xFFBAE6FD)
+                        )
 
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$examsCount", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = AmberWarning)
-                            Text(AppStrings.get("exams", lang), fontSize = 11.sp, color = BlueLight)
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$feesCount", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = GreenLight)
-                            Text(AppStrings.get("fees", lang), fontSize = 11.sp, color = BlueLight)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            TeacherHeroStatOrb(
+                                value = "$studentsCount",
+                                label = AppStrings.get("total_students", lang),
+                                accent = BlueLight,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TeacherHeroStatOrb(
+                                value = "$examsCount",
+                                label = AppStrings.get("exams", lang),
+                                accent = AmberWarning,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TeacherHeroStatOrb(
+                                value = "$feesCount",
+                                label = AppStrings.get("fees", lang),
+                                accent = GreenLight,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
@@ -722,63 +792,74 @@ fun TeacherOverviewContent(
         }
 
         item {
-            Text(
-                AppStrings.get("quick_actions", lang),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+            SectionHeaderRow(
+                title = AppStrings.get("quick_actions", lang),
+                accentColor = NavyLight,
+                icon = Icons.Default.Bolt
             )
         }
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("attendance", lang),
+                    icon = Icons.Default.Checklist,
+                    gradient = GradientEmerald,
                     onClick = onOpenAttendance,
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Checklist, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("attendance", lang), fontSize = 12.sp)
-                }
+                )
 
-                Button(
+                VibrantGradientButton(
+                    text = AppStrings.get("add", lang),
+                    icon = Icons.Default.PersonAdd,
+                    gradient = GradientRoyalBlue,
                     onClick = onOpenRegisterStudent,
-                    colors = ButtonDefaults.buttonColors(containerColor = BlueSecondary),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("add", lang), fontSize = 12.sp)
-                }
+                )
             }
         }
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
+                VibrantGradientButton(
+                    text = if (lang == "so") "Abuur Imtixaan" else "Create Exam",
+                    icon = Icons.Default.Assignment,
+                    gradient = GradientViolet,
                     onClick = onOpenCreateExam,
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(if (lang == "so") "Abuur Imtixaan" else "Create Exam", fontSize = 12.sp)
-                }
+                )
 
-                OutlinedButton(
+                VibrantGradientButton(
+                    text = AppStrings.get("fee_folders", lang),
+                    icon = Icons.Default.Folder,
+                    gradient = GradientAmber,
                     onClick = onOpenFees,
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("fee_folders", lang), fontSize = 12.sp)
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun TeacherHeroStatOrb(
+    value: String,
+    label: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.45f))
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(value, fontFamily = OutfitFontFamily, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+            Text(label, fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
 }
@@ -797,83 +878,88 @@ fun TeacherStudentsContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = "${AppStrings.get("students", lang)} (${students.size})",
+            accentColor = BlueSecondary,
+            icon = Icons.Default.School
         ) {
-            Text("${AppStrings.get("students", lang)} (${students.size})", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Button(
-                onClick = onRegisterStudent,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
-            }
+            VibrantGradientButton(
+                text = AppStrings.get("add", lang),
+                icon = Icons.Default.Add,
+                gradient = GradientRoyalBlue,
+                height = 42.dp,
+                onClick = onRegisterStudent
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (students.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.School,
+                message = AppStrings.get("no_data", lang),
+                accentColor = BlueSecondary
+            )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(students) { student ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.22f)),
+                        elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 AvatarImage(
                                     photoBase64 = student.photoUrl,
                                     name = student.fullName,
-                                    size = 44.dp,
+                                    size = 48.dp,
                                     accentColor = BlueSecondary
                                 )
 
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                    Text("ID: ${student.studentId} • ${student.parentPhone}", fontSize = 12.sp, color = Color.Gray)
+                                    Text(student.fullName, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
+                                    Text("ID: ${student.studentId} • ${student.parentPhone}", fontSize = 12.sp, color = TextSecondary)
                                 }
 
-                                IconButton(onClick = { onEditStudent(student) }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edit Student", tint = BlueSecondary)
-                                }
+                                VibrantIconActionButton(
+                                    icon = Icons.Default.Edit,
+                                    contentDescription = "Edit Student",
+                                    color = BlueSecondary,
+                                    onClick = { onEditStudent(student) }
+                                )
 
-                                Button(
-                                    onClick = { onWriteRemark(student) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = AmberWarning),
-                                    shape = RoundedCornerShape(6.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Icon(Icons.Default.Comment, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Black)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(AppStrings.get("remarks", lang), fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
-                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                VibrantGradientButton(
+                                    text = AppStrings.get("remarks", lang),
+                                    icon = Icons.Default.Comment,
+                                    gradient = GradientAmber,
+                                    contentColor = Color(0xFF0F172A),
+                                    height = 36.dp,
+                                    fontSize = 11,
+                                    onClick = { onWriteRemark(student) }
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = Color(0xFFFEFCBF)
+                                shape = RoundedCornerShape(50),
+                                color = AmberBackground,
+                                border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.45f))
                             ) {
                                 Text(
                                     "Linking Code: ${student.linkingCode}",
+                                    fontFamily = MonoFontFamily,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF744210),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    color = Color(0xFF92400E),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }
@@ -925,19 +1011,20 @@ fun TeacherAttendanceContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(AppStrings.get("attendance", lang), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text("${AppStrings.get("date", lang)}: ${formatDayAndDate(selectedDate, lang)}", fontSize = 12.sp, color = Color.Gray)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(AppStrings.get("attendance", lang), fontFamily = OutfitFontFamily, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = NavyPrimary)
+                Text("${AppStrings.get("date", lang)}: ${formatDayAndDate(selectedDate, lang)}", fontSize = 12.sp, color = BlueSecondary, fontWeight = FontWeight.SemiBold)
             }
 
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("mark_all_present", lang),
+                icon = Icons.Default.DoneAll,
+                gradient = GradientEmerald,
+                height = 40.dp,
+                fontSize = 11,
                 onClick = { students.forEach { attendanceMap[it.studentId] = "PRESENT" } },
-                colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("mark_all_present_button")
-            ) {
-                Text(AppStrings.get("mark_all_present", lang), fontSize = 11.sp)
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -945,17 +1032,18 @@ fun TeacherAttendanceContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(10.dp)
+            border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.25f)),
+            shape = RoundedCornerShape(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                Text("${AppStrings.get("present", lang)}: $presentCount", color = GreenAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("${AppStrings.get("absent", lang)}: $absentCount", color = RedDanger, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("${AppStrings.get("late", lang)}: $lateCount", color = AmberWarning, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("${AppStrings.get("excused", lang)}: $excusedCount", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text(String.format(Locale.US, "%.0f%%", rate), color = NavyPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                Text("${AppStrings.get("present", lang)}: $presentCount", color = GreenAccent, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                Text("${AppStrings.get("absent", lang)}: $absentCount", color = RedDanger, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                Text("${AppStrings.get("late", lang)}: $lateCount", color = AmberDark, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                Text("${AppStrings.get("excused", lang)}: $excusedCount", color = BlueSecondary, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                Text(String.format(Locale.US, "%.0f%%", rate), fontFamily = OutfitFontFamily, color = NavyPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
             }
         }
 
@@ -971,29 +1059,30 @@ fun TeacherAttendanceContent(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(8.dp)
+                    border = BorderStroke(1.dp, BorderLight),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text(student.studentId, fontSize = 11.sp, color = Color.Gray)
+                            Text(student.fullName, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyPrimary)
+                            Text(student.studentId, fontFamily = MonoFontFamily, fontSize = 11.sp, color = TextSecondary)
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             AttendanceStatusButton("P", currentStatus == "PRESENT", GreenAccent) {
                                 attendanceMap[student.studentId] = "PRESENT"
                             }
                             AttendanceStatusButton("A", currentStatus == "ABSENT", RedDanger) {
                                 attendanceMap[student.studentId] = "ABSENT"
                             }
-                            AttendanceStatusButton("L", currentStatus == "LATE", AmberWarning) {
+                            AttendanceStatusButton("L", currentStatus == "LATE", AmberDark) {
                                 attendanceMap[student.studentId] = "LATE"
                             }
-                            AttendanceStatusButton("E", currentStatus == "EXCUSED", Color.Gray) {
+                            AttendanceStatusButton("E", currentStatus == "EXCUSED", BlueSecondary) {
                                 attendanceMap[student.studentId] = "EXCUSED"
                             }
                         }
@@ -1004,7 +1093,12 @@ fun TeacherAttendanceContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        Button(
+        VibrantGradientButton(
+            text = AppStrings.get("save", lang),
+            icon = Icons.Default.Save,
+            gradient = GradientRoyalBlue,
+            height = 50.dp,
+            fontSize = 15,
             onClick = {
                 if (selectedClass != null) {
                     val records = students.map { s ->
@@ -1018,14 +1112,8 @@ fun TeacherAttendanceContent(
                     Toast.makeText(context, AppStrings.get("success_saved", lang), Toast.LENGTH_SHORT).show()
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().height(48.dp).testTag("save_attendance_button")
-        ) {
-            Icon(Icons.Default.Save, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(AppStrings.get("save", lang), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        }
+            modifier = Modifier.fillMaxWidth().testTag("save_attendance_button")
+        )
     }
 }
 
@@ -1036,23 +1124,31 @@ fun AttendanceStatusButton(
     color: Color,
     onClick: () -> Unit
 ) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.06f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "att_scale"
+    )
     Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = if (isSelected) color else Color(0xFFEDF2F7),
-        modifier = Modifier.size(34.dp).clickable { onClick() }
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) color else color.copy(alpha = 0.09f),
+        border = BorderStroke(1.2.dp, if (isSelected) color else color.copy(alpha = 0.35f)),
+        shadowElevation = if (isSelected) 3.dp else 0.dp,
+        modifier = Modifier.scale(scale).size(36.dp).clickable { onClick() }
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 shortLabel,
-                color = if (isSelected) Color.White else Color.Black,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
+                fontFamily = OutfitFontFamily,
+                color = if (isSelected) Color.White else color,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 13.sp
             )
         }
     }
 }
 
-// Teacher Exams Tab (Report Cards button opens ALL students in class, not just 1!)
+// Teacher Exams Tab (Report Cards button opens ALL students in class)
 @Composable
 fun TeacherExamsContent(
     lang: String,
@@ -1067,37 +1163,38 @@ fun TeacherExamsContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = AppStrings.get("exams", lang),
+            subtitle = "${exams.size}",
+            accentColor = VioletAccent,
+            icon = Icons.Default.Assignment
         ) {
-            Text(AppStrings.get("exams", lang), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Button(
-                onClick = onCreateExam,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
-            }
+            VibrantGradientButton(
+                text = AppStrings.get("add", lang),
+                icon = Icons.Default.Add,
+                gradient = GradientViolet,
+                height = 42.dp,
+                onClick = onCreateExam
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (exams.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.Assignment,
+                message = AppStrings.get("no_data", lang),
+                accentColor = VioletAccent
+            )
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(exams) { exam ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        border = BorderStroke(1.dp, VioletAccent.copy(alpha = 0.25f)),
+                        elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(
@@ -1106,9 +1203,9 @@ fun TeacherExamsContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(exam.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = NavyPrimary)
+                                    Text(exam.name, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = NavyPrimary)
                                     if (exam.folderName.isNotBlank()) {
-                                        Text("Folder: ${exam.folderName}", fontSize = 11.sp, color = BlueSecondary)
+                                        Text("Folder: ${exam.folderName}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = VioletAccent)
                                     }
                                 }
                                 StatusBadge(status = exam.status, lang = lang)
@@ -1119,39 +1216,35 @@ fun TeacherExamsContent(
                             Text(
                                 "${exam.examType} • ${exam.subjects.size} ${AppStrings.get("subjects", lang)}",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = TextSecondary
                             )
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Button(
+                                VibrantGradientButton(
+                                    text = AppStrings.get("enter_marks", lang),
+                                    icon = Icons.Default.Edit,
+                                    gradient = GradientRoyalBlue,
+                                    height = 40.dp,
+                                    fontSize = 11,
                                     onClick = { onEnterMarks(exam) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BlueSecondary),
-                                    shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(AppStrings.get("enter_marks", lang), fontSize = 11.sp)
-                                }
+                                )
 
                                 if (students.isNotEmpty()) {
-                                    OutlinedButton(
+                                    VibrantTintedButton(
+                                        text = "${AppStrings.get("view_report_card", lang)} (${students.size})",
+                                        color = GreenAccent,
+                                        icon = Icons.Default.Assessment,
+                                        height = 40.dp,
+                                        fontSize = 11,
                                         onClick = { onViewAllReportCards(exam) },
-                                        shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            "${AppStrings.get("view_report_card", lang)} (${students.size})",
-                                            fontSize = 11.sp
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -1177,50 +1270,46 @@ fun TeacherFeesContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        SectionHeaderRow(
+            title = AppStrings.get("fee_folders", lang),
+            subtitle = if (lang == "so") "Fur folder-ka si aad ardayda ula socoto una gudbiso" else "Tap a fee folder to submit to parents & mark payments",
+            accentColor = RedDanger,
+            icon = Icons.Default.FolderShared
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(AppStrings.get("fee_folders", lang), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    if (lang == "so") "Fur folder-ka si aad ardayda ula socoto una gudbiso" else "Tap a fee folder to submit to parents & mark payments",
-                    fontSize = 11.sp,
-                    color = Color.Gray
-                )
-            }
-            Button(
-                onClick = onCreateFee,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.CreateNewFolder, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(if (lang == "so") "Fii Cusub" else "New Fee")
-            }
+            VibrantGradientButton(
+                text = if (lang == "so") "Fii Cusub" else "New Fee",
+                icon = Icons.Default.CreateNewFolder,
+                gradient = GradientCrimson,
+                height = 42.dp,
+                fontSize = 12,
+                onClick = onCreateFee
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (fees.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
+            EmptyStateCard(
+                icon = Icons.Default.FolderOff,
+                message = AppStrings.get("no_data", lang),
+                accentColor = RedDanger
+            )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(fees) { fee ->
                     val folderPayments = feePayments.filter { it.feeId == fee.feeId }
                     val paidCount = folderPayments.count { it.status == "PAID" }
                     val totalStudentsCount = maxOf(students.size, folderPayments.size)
+                    val folderGrad = if (fee.isPublished) GradientEmerald else GradientAmber
 
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onOpenFeeFolder(fee) }
                             .testTag("fee_folder_${fee.feeId}"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, (if (fee.isPublished) GreenAccent else AmberWarning).copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(3.dp)
                     ) {
                         Row(
@@ -1229,16 +1318,16 @@ fun TeacherFeesContent(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (fee.isPublished) GreenAccent.copy(alpha = 0.15f) else AmberWarning.copy(alpha = 0.18f)),
+                                    .size(50.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Brush.linearGradient(folderGrad)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.Folder,
                                     contentDescription = null,
-                                    tint = if (fee.isPublished) GreenAccent else Color(0xFFB7791F),
-                                    modifier = Modifier.size(28.dp)
+                                    tint = Color.White,
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
 
@@ -1252,29 +1341,23 @@ fun TeacherFeesContent(
                                 ) {
                                     Text(
                                         fee.feeName,
+                                        fontFamily = OutfitFontFamily,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = NavyPrimary,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (fee.isPublished) Color(0xFFC6F6D5) else Color(0xFFFEEBC8)
-                                    ) {
-                                        Text(
-                                            text = if (fee.isPublished) AppStrings.get("submitted", lang) else if (lang == "so") "Qabyo" else "Draft",
-                                            color = if (fee.isPublished) Color(0xFF22543D) else Color(0xFF7B341E),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
+                                    StatusBadge(
+                                        status = if (fee.isPublished) "SUBMITTED" else "UNPAID",
+                                        lang = lang
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     "$${fee.amount} • ${AppStrings.get("due_date", lang)}: ${fee.dueDate}",
                                     fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = BlueSecondary
                                 )
                                 Text(
@@ -1283,7 +1366,7 @@ fun TeacherFeesContent(
                                     else
                                         "Paid: $paidCount / $totalStudentsCount students",
                                     fontSize = 12.sp,
-                                    color = Color.Gray
+                                    color = TextSecondary
                                 )
                             }
 
@@ -1308,6 +1391,8 @@ fun TeacherFeeFolderDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1315,34 +1400,21 @@ fun TeacherFeeFolderDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(fee.feeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
-                    Text("$${fee.amount} • ${fee.className}", fontSize = 11.sp, color = Color.Gray)
+                    Text(fee.feeName, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
+                    Text("$${fee.amount} • ${fee.className}", fontSize = 11.sp, color = TextSecondary)
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Top-right corner "Gudbi" (Submit) button to publish fee to every parent room
-                Button(
+                VibrantGradientButton(
+                    text = if (fee.isPublished) AppStrings.get("submitted", lang) else AppStrings.get("submit_to_parents", lang),
+                    icon = if (fee.isPublished) Icons.Default.Check else Icons.Default.Send,
+                    gradient = if (fee.isPublished) GradientEmerald else GradientViolet,
+                    height = 38.dp,
+                    fontSize = 12,
                     onClick = onSubmitFeeToParents,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (fee.isPublished) GreenAccent else NavyPrimary
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.testTag("fee_folder_submit_button")
-                ) {
-                    Icon(
-                        if (fee.isPublished) Icons.Default.Check else Icons.Default.Send,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (fee.isPublished) AppStrings.get("submitted", lang) else AppStrings.get("submit_to_parents", lang),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                )
             }
         },
         text = {
@@ -1369,7 +1441,7 @@ fun TeacherFeeFolderDialog(
             }
 
             if (rows.isEmpty()) {
-                Text(AppStrings.get("no_data", lang), color = Color.Gray)
+                Text(AppStrings.get("no_data", lang), color = TextSecondary)
             } else {
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 360.dp),
@@ -1378,9 +1450,11 @@ fun TeacherFeeFolderDialog(
                     items(rows) { p ->
                         val st = students.firstOrNull { it.studentId == p.studentId }
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (p.balance > 0) RedBackground.copy(alpha = 0.45f) else GreenBackground.copy(alpha = 0.5f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, (if (p.balance > 0) RedDanger else GreenAccent).copy(alpha = 0.25f))
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(10.dp),
@@ -1392,35 +1466,34 @@ fun TeacherFeeFolderDialog(
                                         photoBase64 = st?.photoUrl ?: "",
                                         name = p.studentName,
                                         size = 36.dp,
-                                        accentColor = NavyPrimary
+                                        accentColor = if (p.balance > 0) RedDanger else GreenAccent
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
-                                        Text(p.studentName, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text(p.studentName, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NavyPrimary)
                                         Text(
                                             if (p.balance > 0) "${AppStrings.get("balance", lang)}: $${p.balance}"
                                             else "${AppStrings.get("receipt_no", lang)}: ${p.receiptNo}",
                                             fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
                                             color = if (p.balance > 0) RedDanger else GreenAccent
                                         )
                                     }
                                 }
 
                                 if (p.balance > 0) {
-                                    Button(
+                                    VibrantGradientButton(
+                                        text = AppStrings.get("paid_btn", lang),
+                                        icon = Icons.Default.CheckCircle,
+                                        gradient = GradientEmerald,
+                                        height = 36.dp,
+                                        fontSize = 11,
                                         onClick = {
                                             val rcpt = "RCP-${System.currentTimeMillis() % 100000}"
                                             onMarkStudentPaid(p.paymentId, p.balance, rcpt)
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                        modifier = Modifier.height(34.dp).testTag("pay_btn_${p.studentId}")
-                                    ) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(AppStrings.get("paid_btn", lang), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
+                                        modifier = Modifier.testTag("pay_btn_${p.studentId}")
+                                    )
                                 } else {
                                     StatusBadge(status = "PAID", lang = lang)
                                 }
@@ -1431,7 +1504,7 @@ fun TeacherFeeFolderDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = GradientRoyalBlue, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -1455,7 +1528,9 @@ fun TeacherRegisterStudentDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${AppStrings.get("students", lang)} - ${classRoom.name}") },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text("${AppStrings.get("students", lang)} - ${classRoom.name}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
@@ -1471,6 +1546,7 @@ fun TeacherRegisterStudentDialog(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text(AppStrings.get("full_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1479,6 +1555,7 @@ fun TeacherRegisterStudentDialog(
                         value = father,
                         onValueChange = { father = it },
                         label = { Text(AppStrings.get("father_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1487,6 +1564,7 @@ fun TeacherRegisterStudentDialog(
                         value = mother,
                         onValueChange = { mother = it },
                         label = { Text(AppStrings.get("mother_name", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1495,33 +1573,45 @@ fun TeacherRegisterStudentDialog(
                         value = phone,
                         onValueChange = { phone = it },
                         label = { Text(AppStrings.get("parent_phone", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 item {
-                    Text(AppStrings.get("gender", lang), fontSize = 12.sp)
+                    Text(AppStrings.get("gender", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                     Row {
-                        FilterChip(selected = gender == "M", onClick = { gender = "M" }, label = { Text(AppStrings.get("male", lang)) })
+                        FilterChip(
+                            selected = gender == "M",
+                            onClick = { gender = "M" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NavyLight, selectedLabelColor = Color.White),
+                            label = { Text(AppStrings.get("male", lang)) }
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-                        FilterChip(selected = gender == "F", onClick = { gender = "F" }, label = { Text(AppStrings.get("female", lang)) })
+                        FilterChip(
+                            selected = gender == "F",
+                            onClick = { gender = "F" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = VioletAccent, selectedLabelColor = Color.White),
+                            label = { Text(AppStrings.get("female", lang)) }
+                        )
                     }
                 }
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientRoyalBlue,
+                height = 42.dp,
                 onClick = {
                     if (name.isNotBlank()) {
-                        // Photo is completely optional; empty string passes cleanly!
                         onConfirm(name.trim(), father.trim(), mother.trim(), phone.trim(), gender, admDate, photoBase64)
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -1545,12 +1635,14 @@ fun TeacherCreateExamDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (lang == "so") "Abuur Imtixaan Cusub" else "Create Examination") },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text(if (lang == "so") "Abuur Imtixaan Cusub" else "Create Examination", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = VioletAccent) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (folders.isNotEmpty()) {
                     item {
-                        Text(AppStrings.get("select_folder", lang), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = NavyPrimary)
+                        Text(AppStrings.get("select_folder", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             items(folders) { folder ->
                                 FilterChip(
@@ -1559,6 +1651,7 @@ fun TeacherCreateExamDialog(
                                         selectedFolder = folder
                                         type = folder.examType
                                     },
+                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = AmberDark, selectedLabelColor = Color.White),
                                     label = { Text(folder.name, fontSize = 11.sp) }
                                 )
                             }
@@ -1571,11 +1664,12 @@ fun TeacherCreateExamDialog(
                         onValueChange = { name = it },
                         label = { Text(AppStrings.get("exam_name", lang)) },
                         placeholder = { Text("e.g. Midterm Term 1") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 item {
-                    Text(AppStrings.get("exam_type", lang), fontSize = 12.sp)
+                    Text(AppStrings.get("exam_type", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilterChip(selected = type == "MONTHLY", onClick = { type = "MONTHLY" }, label = { Text("Monthly") })
                         FilterChip(selected = type == "MIDTERM", onClick = { type = "MIDTERM" }, label = { Text("Midterm") })
@@ -1587,6 +1681,7 @@ fun TeacherCreateExamDialog(
                         value = subjectsStr,
                         onValueChange = { subjectsStr = it },
                         label = { Text(AppStrings.get("subjects", lang) + " (Comma separated)") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1595,13 +1690,18 @@ fun TeacherCreateExamDialog(
                         value = desc,
                         onValueChange = { desc = it },
                         label = { Text(AppStrings.get("description", lang)) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientViolet,
+                height = 42.dp,
                 onClick = {
                     if (name.isNotBlank()) {
                         val subs = subjectsStr.split(",").map { it.trim() }.filter { it.isNotBlank() }
@@ -1618,12 +1718,10 @@ fun TeacherCreateExamDialog(
                         )
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -1654,10 +1752,12 @@ fun TeacherEnterMarksDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Column {
-                Text(exam.name, fontWeight = FontWeight.Bold, color = NavyPrimary)
-                Text("${AppStrings.get("enter_marks", lang)} • ${exam.className}", fontSize = 12.sp, color = Color.Gray)
+                Text(exam.name, fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary)
+                Text("${AppStrings.get("enter_marks", lang)} • ${exam.className}", fontSize = 12.sp, color = BlueSecondary)
             }
         },
         text = {
@@ -1673,16 +1773,17 @@ fun TeacherEnterMarksDialog(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        colors = CardDefaults.cardColors(containerColor = BlueSurface.copy(alpha = 0.35f)),
+                        border = BorderStroke(1.dp, BlueSecondary.copy(alpha = 0.25f)),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                AvatarImage(photoBase64 = student.photoUrl, name = student.fullName, size = 32.dp)
+                                AvatarImage(photoBase64 = student.photoUrl, name = student.fullName, size = 34.dp, accentColor = NavyLight)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
-                                    Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    Text("ID: ${student.studentId}", fontSize = 11.sp, color = Color.Gray)
+                                    Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyPrimary)
+                                    Text("ID: ${student.studentId}", fontFamily = MonoFontFamily, fontSize = 11.sp, color = TextSecondary)
                                 }
                             }
 
@@ -1701,7 +1802,7 @@ fun TeacherEnterMarksDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("${sub.name} (Max ${sub.maxMarks.toInt()})", fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                    Text("${sub.name} (Max ${sub.maxMarks.toInt()})", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                                     OutlinedTextField(
                                         value = markStr,
                                         onValueChange = {
@@ -1709,7 +1810,8 @@ fun TeacherEnterMarksDialog(
                                             val num = it.toDoubleOrNull() ?: 0.0
                                             studentMarks[sub.name] = num.coerceIn(0.0, sub.maxMarks)
                                         },
-                                        modifier = Modifier.width(80.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.width(84.dp),
                                         singleLine = true
                                     )
                                 }
@@ -1730,6 +1832,7 @@ fun TeacherEnterMarksDialog(
                                         fontSize = 11.sp
                                     )
                                 },
+                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2
                             )
@@ -1739,7 +1842,11 @@ fun TeacherEnterMarksDialog(
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("submit", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientEmerald,
+                height = 42.dp,
                 onClick = {
                     val resultsList = students.map { s ->
                         val subMarks = marksMap[s.studentId] ?: emptyMap()
@@ -1774,12 +1881,10 @@ fun TeacherEnterMarksDialog(
                     Toast.makeText(context, AppStrings.get("success_saved", lang), Toast.LENGTH_SHORT).show()
                     onDismiss()
                 }
-            ) {
-                Text(AppStrings.get("submit", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }
@@ -1796,7 +1901,7 @@ fun TeacherAllReportCardsDialog(
 ) {
     val context = LocalContext.current
     val results by viewModel.repository.observeExamResults(exam.examId).collectAsState(initial = emptyList())
-    var selectedStudentFilter by remember { mutableStateOf<String?>(null) } // null = All students
+    var selectedStudentFilter by remember { mutableStateOf<String?>(null) }
 
     val displayList = remember(students, results, selectedStudentFilter) {
         val base = students.map { st ->
@@ -1822,10 +1927,12 @@ fun TeacherAllReportCardsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
         title = {
             Column {
-                Text("${AppStrings.get("view_report_card", lang)} • ${exam.className}", fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 15.sp)
-                Text("${exam.name} (${students.size} ${AppStrings.get("students", lang)})", fontSize = 11.sp, color = Color.Gray)
+                Text("${AppStrings.get("view_report_card", lang)} • ${exam.className}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 15.sp)
+                Text("${exam.name} (${students.size} ${AppStrings.get("students", lang)})", fontSize = 11.sp, color = BlueSecondary)
             }
         },
         text = {
@@ -1835,6 +1942,7 @@ fun TeacherAllReportCardsDialog(
                         FilterChip(
                             selected = selectedStudentFilter == null,
                             onClick = { selectedStudentFilter = null },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NavyLight, selectedLabelColor = Color.White),
                             label = { Text("${AppStrings.get("all_students", lang)} (${students.size})", fontSize = 11.sp) }
                         )
                     }
@@ -1842,6 +1950,7 @@ fun TeacherAllReportCardsDialog(
                         FilterChip(
                             selected = selectedStudentFilter == st.studentId,
                             onClick = { selectedStudentFilter = st.studentId },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GreenAccent, selectedLabelColor = Color.White),
                             label = { Text(st.fullName.substringBefore(" "), fontSize = 11.sp) }
                         )
                     }
@@ -1862,8 +1971,13 @@ fun TeacherAllReportCardsDialog(
                                 result = res,
                                 lang = lang
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedButton(
+                            Spacer(modifier = Modifier.height(8.dp))
+                            VibrantGradientButton(
+                                text = "${AppStrings.get("download_pdf", lang)} (${st.fullName})",
+                                icon = Icons.Default.Download,
+                                gradient = GradientRoyalBlue,
+                                height = 40.dp,
+                                fontSize = 11,
                                 onClick = {
                                     val pdfFile = ReportCardPdfGenerator.generateReportCard(
                                         context = context,
@@ -1879,20 +1993,15 @@ fun TeacherAllReportCardsDialog(
                                         Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("${AppStrings.get("download_pdf", lang)} (${st.fullName})", fontSize = 11.sp)
-                            }
+                            )
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            VibrantGradientButton(text = "OK", gradient = GradientEmerald, height = 40.dp, onClick = onDismiss)
         }
     )
 }
@@ -1912,7 +2021,9 @@ fun TeacherCreateFeeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${AppStrings.get("fee_folders", lang)} - ${classRoom.name}") },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text("${AppStrings.get("fee_folders", lang)} - ${classRoom.name}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = RedDanger) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -1920,36 +2031,41 @@ fun TeacherCreateFeeDialog(
                     onValueChange = { feeName = it },
                     label = { Text(AppStrings.get("fee_name", lang)) },
                     placeholder = { Text("e.g. December Tuition Fee") },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = amountStr,
                     onValueChange = { amountStr = it },
                     label = { Text(AppStrings.get("amount", lang)) },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = dueDate,
                     onValueChange = { dueDate = it },
                     label = { Text(AppStrings.get("due_date", lang)) },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Check,
+                gradient = GradientCrimson,
+                height = 42.dp,
                 onClick = {
                     val amt = amountStr.toDoubleOrNull() ?: 0.0
                     if (feeName.isNotBlank() && amt > 0) {
                         onConfirm(feeName.trim(), amt, dueDate.trim(), desc)
                     }
                 }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = TextSecondary) }
         }
     )
 }
@@ -1967,13 +2083,36 @@ fun TeacherWriteRemarkDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${AppStrings.get("remarks", lang)} - ${student.fullName}") },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text("${AppStrings.get("remarks", lang)} - ${student.fullName}", fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = AmberDark) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    item { FilterChip(selected = category == "GOOD_PERFORMANCE", onClick = { category = "GOOD_PERFORMANCE" }, label = { Text("Good Performance") }) }
-                    item { FilterChip(selected = category == "EXCELLENT_BEHAVIOR", onClick = { category = "EXCELLENT_BEHAVIOR" }, label = { Text("Excellent Behavior") }) }
-                    item { FilterChip(selected = category == "NEEDS_IMPROVEMENT", onClick = { category = "NEEDS_IMPROVEMENT" }, label = { Text("Needs Improvement") }) }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    item {
+                        FilterChip(
+                            selected = category == "GOOD_PERFORMANCE",
+                            onClick = { category = "GOOD_PERFORMANCE" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GreenAccent, selectedLabelColor = Color.White),
+                            label = { Text("Good Performance") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = category == "EXCELLENT_BEHAVIOR",
+                            onClick = { category = "EXCELLENT_BEHAVIOR" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = BlueSecondary, selectedLabelColor = Color.White),
+                            label = { Text("Excellent Behavior") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = category == "NEEDS_IMPROVEMENT",
+                            onClick = { category = "NEEDS_IMPROVEMENT" },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RedDanger, selectedLabelColor = Color.White),
+                            label = { Text("Needs Improvement") }
+                        )
+                    }
                 }
 
                 OutlinedTextField(
@@ -1981,18 +2120,24 @@ fun TeacherWriteRemarkDialog(
                     onValueChange = { message = it },
                     label = { Text(AppStrings.get("message", lang)) },
                     placeholder = { Text("Enter detailed feedback for parent...") },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { if (message.isNotBlank()) onConfirm(category, message.trim()) }) {
-                Text(AppStrings.get("save", lang))
-            }
+            VibrantGradientButton(
+                text = AppStrings.get("save", lang),
+                icon = Icons.Default.Send,
+                gradient = GradientAmber,
+                contentColor = Color(0xFF0F172A),
+                height = 42.dp,
+                onClick = { if (message.isNotBlank()) onConfirm(category, message.trim()) }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
+            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang), color = RedDanger) }
         }
     )
 }

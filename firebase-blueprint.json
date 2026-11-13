@@ -46,6 +46,7 @@
         "email": { "type": "string" },
         "assignedClasses": { "type": "array" },
         "subjects": { "type": "array" },
+        "photoUrl": { "type": "string" },
         "status": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -60,6 +61,7 @@
         "schoolId": { "type": "string" },
         "name": { "type": "string" },
         "classTeacherId": { "type": "string" },
+        "classTeacherName": { "type": "string" },
         "subjects": { "type": "array" },
         "academicYear": { "type": "string" },
         "accessCode": { "type": "string" },
@@ -82,6 +84,7 @@
         "classId": { "type": "string" },
         "admissionDate": { "type": "string" },
         "linkingCode": { "type": "string" },
+        "photoUrl": { "type": "string" },
         "status": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -119,6 +122,21 @@
       },
       "required": ["attendanceId", "schoolId", "classId", "date"]
     },
+    "ExamFolder": {
+      "title": "Exam Folder",
+      "description": "Admin-created folder organizing class examinations",
+      "type": "object",
+      "properties": {
+        "folderId": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "name": { "type": "string" },
+        "examType": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["folderId", "schoolId", "name"]
+    },
     "Examination": {
       "title": "Examination",
       "description": "Class examination definition and approval status",
@@ -126,6 +144,8 @@
       "properties": {
         "examId": { "type": "string" },
         "schoolId": { "type": "string" },
+        "folderId": { "type": "string" },
+        "folderName": { "type": "string" },
         "name": { "type": "string" },
         "examType": { "type": "string" },
         "classId": { "type": "string" },
@@ -163,7 +183,7 @@
     },
     "Fee": {
       "title": "School Fee",
-      "description": "School fee record assigned to class",
+      "description": "School fee folder assigned to class",
       "type": "object",
       "properties": {
         "feeId": { "type": "string" },
@@ -173,7 +193,8 @@
         "amount": { "type": "number" },
         "dueDate": { "type": "string" },
         "description": { "type": "string" },
-        "academicYear": { "type": "string" }
+        "academicYear": { "type": "string" },
+        "isPublished": { "type": "boolean" }
       },
       "required": ["feeId", "schoolId", "feeName", "amount"]
     },
@@ -193,6 +214,7 @@
         "amountPaid": { "type": "number" },
         "balance": { "type": "number" },
         "status": { "type": "string" },
+        "isPublished": { "type": "boolean" },
         "paymentDate": { "type": "string" },
         "receiptNo": { "type": "string" }
       },
@@ -261,6 +283,7 @@
         "targetStudentId": { "type": "string" },
         "title": { "type": "string" },
         "message": { "type": "string" },
+        "receiptNo": { "type": "string" },
         "date": { "type": "string" },
         "isRead": { "type": "boolean" }
       },
@@ -295,6 +318,10 @@
     "/attendance/{attendanceId}": {
       "schema": { "$ref": "#/entities/Attendance" },
       "description": "Daily attendance registers"
+    },
+    "/exam_folders/{folderId}": {
+      "schema": { "$ref": "#/entities/ExamFolder" },
+      "description": "Admin-managed examination folders"
     },
     "/examinations/{examId}": {
       "schema": { "$ref": "#/entities/Examination" },

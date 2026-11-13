@@ -285,7 +285,7 @@ fun WelcomePortalScreen(
             RolePortalCard(
                 title = AppStrings.get("teacher", lang),
                 portalName = AppStrings.get("teacher_portal", lang),
-                desc = if (lang == "so") "Xaadiriska fasalka, buundooyinka ardayda, shaqo-guri & kaararka" else "Class attendance, marks entry, student remarks & report cards",
+                desc = if (lang == "so") "Fur fasalkaaga, xaadiriska, buundooyinka ardayda, fiiga & fariimaha" else "Class password login, attendance, marks entry, fees & remarks",
                 icon = Icons.Default.School,
                 accentColor = BlueLight,
                 bgGradient = listOf(Color(0xFF1E40AF), Color(0xFF1E293B)),
@@ -305,7 +305,7 @@ fun WelcomePortalScreen(
             RolePortalCard(
                 title = AppStrings.get("parent", lang),
                 portalName = AppStrings.get("parent_portal", lang),
-                desc = if (lang == "so") "Natiijooyinka carruurtaada, xaadiriska, fiiga, shaqo-guri & jadwalka" else "Track child grades, daily attendance, fee balances & remarks",
+                desc = if (lang == "so") "Natiijooyinka carruurtaada, xaadiriska, fiiga & fariimaha macallinka" else "Track child report cards, daily attendance, fee receipts & remarks",
                 icon = Icons.Default.FamilyRestroom,
                 accentColor = GreenLight,
                 bgGradient = listOf(Color(0xFF065F46), Color(0xFF0F172A)),
@@ -313,13 +313,13 @@ fun WelcomePortalScreen(
                 onClick = {
                     if (currentUser == null) {
                         signInWithGoogle {
-                            if (userProfile?.role != "PARENT") {
-                                showParentRegisterDialog = true
-                            } else {
+                            if (viewModel.hasCreatedParentRoom()) {
                                 onNavigateToParent()
+                            } else {
+                                showParentRegisterDialog = true
                             }
                         }
-                    } else if (userProfile?.role == "PARENT") {
+                    } else if (viewModel.hasCreatedParentRoom()) {
                         onNavigateToParent()
                     } else {
                         showParentRegisterDialog = true

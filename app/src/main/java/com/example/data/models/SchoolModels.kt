@@ -50,10 +50,10 @@ data class Teacher(
     val fullName: String = "",
     val phone: String = "",
     val email: String = "",
-    val assignedClasses: List<String> = emptyList(), // class IDs
+    val assignedClasses: List<String> = emptyList(),
     val subjects: List<String> = emptyList(),
     val status: String = "ACTIVE",
-    val photoUrl: String = "",
+    val photoUrl: String = "", // Base64 compressed JPEG
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 
@@ -61,7 +61,7 @@ data class Teacher(
 data class ClassRoom(
     @DocumentId val classId: String = "",
     val schoolId: String = FIXED_SCHOOL_ID,
-    val name: String = "", // e.g. Form 1A, Grade 8, Class 5
+    val name: String = "",
     val classTeacherId: String = "",
     val classTeacherName: String = "",
     val subjects: List<String> = emptyList(),
@@ -73,25 +73,25 @@ data class ClassRoom(
 
 @IgnoreExtraProperties
 data class Student(
-    @DocumentId val studentId: String = "", // Unique ID like "IFT-001"
+    @DocumentId val studentId: String = "",
     val schoolId: String = FIXED_SCHOOL_ID,
     val fullName: String = "",
     val fatherName: String = "",
     val motherName: String = "",
     val parentPhone: String = "",
-    val gender: String = "M", // "M" or "F"
+    val gender: String = "M",
     val classId: String = "",
     val className: String = "",
     val admissionDate: String = "",
-    val linkingCode: String = "", // Secure code for parent linking, e.g. "749201"
+    val linkingCode: String = "",
     val status: String = "ACTIVE",
-    val photoUrl: String = "",
+    val photoUrl: String = "", // Optional Base64 compressed JPEG
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 
 @IgnoreExtraProperties
 data class ParentProfile(
-    @DocumentId val parentId: String = "", // userId
+    @DocumentId val parentId: String = "",
     val schoolId: String = FIXED_SCHOOL_ID,
     val fullName: String = "",
     val phone: String = "",
@@ -108,7 +108,7 @@ data class AttendanceRecord(
 
 @IgnoreExtraProperties
 data class DailyAttendance(
-    @DocumentId val attendanceId: String = "", // "${classId}_${date}"
+    @DocumentId val attendanceId: String = "",
     val schoolId: String = FIXED_SCHOOL_ID,
     val classId: String = "",
     val className: String = "",
@@ -124,6 +124,17 @@ data class DailyAttendance(
 )
 
 @IgnoreExtraProperties
+data class ExamFolder(
+    @DocumentId val folderId: String = "",
+    val schoolId: String = FIXED_SCHOOL_ID,
+    val name: String = "",
+    val examType: String = "MIDTERM", // "MONTHLY", "MIDTERM", "FINAL", "WEEKLY", "CUSTOM"
+    val academicYear: String = "2025-2026",
+    val description: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
 data class ExamSubject(
     val name: String = "",
     val maxMarks: Double = 100.0
@@ -133,8 +144,10 @@ data class ExamSubject(
 data class Examination(
     @DocumentId val examId: String = "",
     val schoolId: String = FIXED_SCHOOL_ID,
+    val folderId: String = "",
+    val folderName: String = "",
     val name: String = "",
-    val examType: String = "MONTHLY", // "MONTHLY", "MIDTERM", "FINAL", "WEEKLY", "CUSTOM"
+    val examType: String = "MONTHLY",
     val classId: String = "",
     val className: String = "",
     val academicYear: String = "2025-2026",
@@ -149,7 +162,7 @@ data class Examination(
 
 @IgnoreExtraProperties
 data class ExamResult(
-    @DocumentId val resultId: String = "", // "${examId}_${studentId}"
+    @DocumentId val resultId: String = "",
     val schoolId: String = FIXED_SCHOOL_ID,
     val examId: String = "",
     val examName: String = "",
@@ -163,7 +176,7 @@ data class ExamResult(
     val percentage: Double = 0.0,
     val average: Double = 0.0,
     val grade: String = "F",
-    val position: Long = 0L, // Competition rank
+    val position: Long = 0L,
     val teacherRemarks: String = "",
     val isPublished: Boolean = false,
     @ServerTimestamp val updatedAt: Timestamp? = null
@@ -180,6 +193,7 @@ data class Fee(
     val dueDate: String = "",
     val description: String = "",
     val academicYear: String = "2025-2026",
+    val isPublished: Boolean = false, // Submitted to parents ("Gudbi")
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 
@@ -197,6 +211,7 @@ data class FeePayment(
     val amountPaid: Double = 0.0,
     val balance: Double = 0.0,
     val status: String = "UNPAID", // "UNPAID", "PARTIALLY_PAID", "PAID", "OVERDUE"
+    val isPublished: Boolean = false, // Visible to parents once teacher taps "Gudbi"
     val paymentDate: String = "",
     val receiptNo: String = "",
     val notes: String = "",
@@ -209,11 +224,11 @@ data class TimetableSlot(
     val schoolId: String = FIXED_SCHOOL_ID,
     val classId: String = "",
     val className: String = "",
-    val day: String = "Monday", // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+    val day: String = "Monday",
     val subject: String = "",
     val teacherName: String = "",
-    val startTime: String = "", // e.g. "08:00 AM"
-    val endTime: String = "",   // e.g. "08:45 AM"
+    val startTime: String = "",
+    val endTime: String = "",
     val roomNo: String = ""
 )
 
@@ -242,7 +257,7 @@ data class StudentRemark(
     val teacherId: String = "",
     val teacherName: String = "",
     val date: String = "",
-    val category: String = "GOOD_PERFORMANCE", // GOOD_PERFORMANCE, EXCELLENT_BEHAVIOR, NEEDS_IMPROVEMENT, HOMEWORK_PROBLEM, ATTENDANCE_PROBLEM, GENERAL_COMPLAINT, POSITIVE_FEEDBACK
+    val category: String = "GOOD_PERFORMANCE",
     val message: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null
 )
@@ -256,6 +271,7 @@ data class SchoolNotification(
     val targetStudentId: String = "",
     val title: String = "",
     val message: String = "",
+    val receiptNo: String = "",
     val date: String = "",
     val isRead: Boolean = false,
     @ServerTimestamp val createdAt: Timestamp? = null

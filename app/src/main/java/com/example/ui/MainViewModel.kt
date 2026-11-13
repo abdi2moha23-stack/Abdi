@@ -1,10 +1,12 @@
 package com.example.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.models.*
 import com.example.data.repository.SchoolRepository
+import com.example.localization.AppStrings
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -20,9 +22,10 @@ import java.util.Locale
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val repository = SchoolRepository(application)
+    private val prefs = application.getSharedPreferences("iftin_school_prefs", Context.MODE_PRIVATE)
 
     // Language state: default "so" (Somali), alternative "en" (English)
-    private val _language = MutableStateFlow("so")
+    private val _language = MutableStateFlow(prefs.getString("app_language", "so") ?: "so")
     val language: StateFlow<String> = _language.asStateFlow()
 
     // Authentication & Role State
@@ -54,6 +57,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _students = MutableStateFlow<List<Student>>(emptyList())
     val students: StateFlow<List<Student>> = _students.asStateFlow()
 
+    private val _examFolders = MutableStateFlow<List<ExamFolder>>(emptyList())
+    val examFolders: StateFlow<List<ExamFolder>> = _examFolders.asStateFlow()
+
     private val _examinations = MutableStateFlow<List<Examination>>(emptyList())
     val examinations: StateFlow<List<Examination>> = _examinations.asStateFlow()
 
@@ -69,9 +75,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _notifications = MutableStateFlow<List<SchoolNotification>>(emptyList())
     val notifications: StateFlow<List<SchoolNotification>> = _notifications.asStateFlow()
 
-    // Teacher specific selected class
+    // Teacher specific selected class & password-unlocked class IDs
     private val _selectedClass = MutableStateFlow<ClassRoom?>(null)
     val selectedClass: StateFlow<ClassRoom?> = _selectedClass.asStateFlow()
+
+    private val _unlockedClassIds = MutableStateFlow<Set<String>>(emptySet())
+    val unlockedClassIds: StateFlow<Set<String>> = _unlockedClassIds.asStateFlow()
 
     // Parent specific linked students and selected child
     private val _parentProfile = MutableStateFlow<ParentProfile?>(null)
@@ -93,10 +102,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         loadSchoolConfig()
         observeData()
+        Firebase.auth.currentUser?.let { refreshAuthUser() }
     }
 
     fun setLanguage(lang: String) {
         _language.value = lang
+        prefs.edit().putString("app_language", lang).apply()
     }
 
     fun selectPortal(portal: String) {
@@ -112,12 +123,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _selectedClass.value = classRoom
     }
 
+    fun unlockClass(classRoom: ClassRoom, enteredPassword: String): Boolean {
+        return if (classRoom.accessCode.trim() == enteredPassword.trim() && enteredPassword.isNotBlank()) {
+            _unlockedClassIds.value = _unlockedClassIds.value + classRoom.classId
+            _selectedClass.value = classRoom
+            true
+        } else {
+            false
+        }
+    }
+
     fun selectChild(student: Student?) {
         _selectedChild.value = student
     }
 
     fun clearToast() {
         _toastMessage.value = null
+    }
+
+    fun hasCreatedParentRoom(): Boolean {
+        val uid = Firebase.auth.currentUser?.uid ?: return false
+        if (prefs.getBoolean("parent_room_$uid", false)) return true
+        if (_userProfile.value?.role == "PARENT") return true
+        if (_parentProfile.value != null) return true
+        return false
     }
 
     private fun loadSchoolConfig() {
@@ -142,7 +171,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.launch {
                 val prof = repository.getUserProfile(user.uid)
                 _userProfile.value = prof
-                if (prof?.role == "PARENT") {
+                if (prof?.role == "PARENT" || prefs.getBoolean("parent_room_${user.uid}", false)) {
+                    prefs.edit().putBoolean("parent_room_${user.uid}", true).apply()
                     loadParentProfile(user.uid)
                 }
             }
@@ -159,15 +189,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.observeTeachers().collectLatest { _teachers.value = it }
         }
         viewModelScope.launch {
-            repository.observeClasses().collectLatest {
-                _classes.value = it
-                if (_selectedClass.value == null && it.isNotEmpty()) {
-                    _selectedClass.value = it.first()
+            repository.observeClasses().collectLatest { list ->
+                _classes.value = list
+                val currentId = _selectedClass.value?.classId
+                if (currentId != null) {
+                    _selectedClass.value = list.firstOrNull { it.classId == currentId }
                 }
             }
         }
         viewModelScope.launch {
             repository.observeStudents().collectLatest { _students.value = it }
+        }
+        viewModelScope.launch {
+            repository.observeExamFolders().collectLatest { _examFolders.value = it }
         }
         viewModelScope.launch {
             repository.observeExaminations().collectLatest { _examinations.value = it }
@@ -191,10 +225,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.observeParentProfile(parentId).collectLatest { profile ->
                 _parentProfile.value = profile
                 if (profile != null) {
+                    prefs.edit().putBoolean("parent_room_$parentId", true).apply()
                     val kids = repository.getStudentsByIds(profile.linkedStudentIds)
                     _linkedStudents.value = kids
-                    if (_selectedChild.value == null && kids.isNotEmpty()) {
-                        _selectedChild.value = kids.first()
+                    val selectedId = _selectedChild.value?.studentId
+                    _selectedChild.value = if (selectedId != null) {
+                        kids.firstOrNull { it.studentId == selectedId } ?: kids.firstOrNull()
+                    } else {
+                        kids.firstOrNull()
                     }
                 }
             }
@@ -230,12 +268,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                prefs.edit().putBoolean("parent_room_${user.uid}", true).apply()
                 val profile = UserProfile(
                     userId = user.uid,
                     email = user.email ?: "",
                     name = user.displayName ?: "Parent",
                     role = "PARENT",
                     schoolId = FIXED_SCHOOL_ID,
+                    parentId = user.uid,
                     language = _language.value
                 )
                 repository.saveUserProfile(profile)
@@ -258,11 +298,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val found = repository.findStudentByLinkingCode(studentId, linkingCode)
                 if (found != null) {
                     repository.linkChildToParent(user.uid, found.studentId)
+                    prefs.edit().putBoolean("parent_room_${user.uid}", true).apply()
                     loadParentProfile(user.uid)
-                    _toastMessage.value = "Ardayga ${found.fullName} si guul leh ayaa loogu xiriiriyay!"
+                    _toastMessage.value = if (_language.value == "so")
+                        "Ardayga ${found.fullName} si guul leh ayaa loogu xiriiriyay!"
+                    else
+                        "Student ${found.fullName} linked successfully!"
                     onResult(true)
                 } else {
-                    _toastMessage.value = "Lama helin arday leh ID-gan iyo Furahan!"
+                    _toastMessage.value = AppStrings.get("child_not_found", _language.value)
                     onResult(false)
                 }
             } catch (e: Exception) {
@@ -275,47 +319,76 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Teacher Management
-    fun addTeacher(fullName: String, phone: String, email: String, classes: List<String>, subjects: List<String>) {
+    fun addTeacher(
+        fullName: String,
+        phone: String,
+        email: String,
+        classes: List<String> = emptyList(),
+        photoUrl: String = ""
+    ) {
         viewModelScope.launch {
             val t = Teacher(
                 fullName = fullName,
                 phone = phone,
                 email = email,
                 assignedClasses = classes,
-                subjects = subjects
+                photoUrl = photoUrl
             )
             repository.addTeacher(t)
-            _toastMessage.value = "Macallinka waa la keydiyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
+        }
+    }
+
+    fun updateTeacher(teacher: Teacher) {
+        viewModelScope.launch {
+            repository.updateTeacher(teacher)
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
     fun deleteTeacher(teacherId: String) {
         viewModelScope.launch {
             repository.deleteTeacher(teacherId)
-            _toastMessage.value = "Macallinka waa la tiray"
+            _toastMessage.value = AppStrings.get("success_deleted", _language.value)
         }
     }
 
     // Class Management
-    fun addClass(name: String, teacherName: String, subjects: List<String>, year: String) {
+    fun addClass(
+        name: String,
+        teacherId: String = "",
+        teacherName: String,
+        year: String,
+        customAccessCode: String = ""
+    ) {
         viewModelScope.launch {
-            val accessCode = (1000 + (Math.random() * 9000).toInt()).toString()
+            val accessCode = customAccessCode.trim().ifBlank {
+                (1000 + (Math.random() * 9000).toInt()).toString()
+            }
             val c = ClassRoom(
                 name = name,
+                classTeacherId = teacherId,
                 classTeacherName = teacherName,
-                subjects = subjects,
+                subjects = listOf("Somali", "English", "Mathematics", "Science", "Islamic Studies"),
                 academicYear = year,
                 accessCode = accessCode
             )
             repository.addClass(c)
-            _toastMessage.value = "Fasalka waa la keydiyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
+        }
+    }
+
+    fun updateClass(classRoom: ClassRoom) {
+        viewModelScope.launch {
+            repository.updateClass(classRoom)
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
     fun deleteClass(classId: String) {
         viewModelScope.launch {
             repository.deleteClass(classId)
-            _toastMessage.value = "Fasalka waa la tiray"
+            _toastMessage.value = AppStrings.get("success_deleted", _language.value)
         }
     }
 
@@ -328,7 +401,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         gender: String,
         classId: String,
         className: String,
-        admissionDate: String
+        admissionDate: String,
+        photoUrl: String = ""
     ) {
         viewModelScope.launch {
             val s = Student(
@@ -339,17 +413,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 gender = gender,
                 classId = classId,
                 className = className,
-                admissionDate = admissionDate
+                admissionDate = admissionDate,
+                photoUrl = photoUrl
             )
             repository.addStudent(s)
-            _toastMessage.value = "Ardayga waa la diiwaangeliyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
+        }
+    }
+
+    fun updateStudent(student: Student) {
+        viewModelScope.launch {
+            repository.updateStudent(student)
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
     fun deleteStudent(studentId: String) {
         viewModelScope.launch {
             repository.deleteStudent(studentId)
-            _toastMessage.value = "Ardayga waa la tiray"
+            _toastMessage.value = AppStrings.get("success_deleted", _language.value)
         }
     }
 
@@ -375,7 +457,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 excusedCount = excused
             )
             repository.saveAttendance(attendance)
-            _toastMessage.value = "Xaadiriska waa la keydiyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
+        }
+    }
+
+    // Exam Folders Management
+    fun createExamFolder(name: String, examType: String, academicYear: String, description: String) {
+        viewModelScope.launch {
+            val folder = ExamFolder(
+                name = name,
+                examType = examType,
+                academicYear = academicYear,
+                description = description
+            )
+            repository.saveExamFolder(folder)
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
+        }
+    }
+
+    fun deleteExamFolder(folderId: String) {
+        viewModelScope.launch {
+            repository.deleteExamFolder(folderId)
+            _toastMessage.value = AppStrings.get("success_deleted", _language.value)
         }
     }
 
@@ -388,10 +491,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         subjects: List<ExamSubject>,
         startDate: String,
         endDate: String,
-        desc: String
+        desc: String,
+        folderId: String = "",
+        folderName: String = ""
     ) {
         viewModelScope.launch {
             val exam = Examination(
+                folderId = folderId,
+                folderName = folderName,
                 name = name,
                 examType = type,
                 classId = classId,
@@ -404,14 +511,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 createdByTeacherId = _currentUser.value?.uid ?: ""
             )
             repository.saveExamination(exam)
-            _toastMessage.value = "Imtixaanka waa la abuuray"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
     fun updateExamStatus(examId: String, status: String) {
         viewModelScope.launch {
             repository.updateExamStatus(examId, status)
-            _toastMessage.value = "Xaaladda imtixaanka waa la cusbooneysiiyay: $status"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
@@ -419,7 +526,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.saveExamResultsBatch(results)
             repository.updateExamStatus(exam.examId, "SUBMITTED")
-            _toastMessage.value = "Natiijooyinka si guul leh ayaa loo gudbiyay!"
+            _toastMessage.value = if (_language.value == "so")
+                "Natiijooyinka si guul leh ayaa loogu gudbiyay maamulka!"
+            else
+                "Examination results submitted successfully!"
         }
     }
 
@@ -433,10 +543,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 className = className,
                 amount = amount,
                 dueDate = dueDate,
-                description = desc
+                description = desc,
+                isPublished = false
             )
             repository.addFee(fee, studentsInClass)
-            _toastMessage.value = "Fiiga cusub waa la xilsaaray fasalka"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
+        }
+    }
+
+    fun publishFeeFolder(fee: Fee) {
+        viewModelScope.launch {
+            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val studentsInClass = _students.value.filter { it.classId == fee.classId }
+            repository.publishFeeToParents(fee, studentsInClass, dateStr)
+            _toastMessage.value = AppStrings.get("fee_submitted_notice", _language.value)
         }
     }
 
@@ -444,7 +564,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             repository.recordPayment(paymentId, amount, receiptNo, dateStr)
-            _toastMessage.value = "Lacag bixinta waa la keydiyay"
+            _toastMessage.value = AppStrings.get("receipt_sent_notice", _language.value)
         }
     }
 
@@ -462,40 +582,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 roomNo = room
             )
             repository.addTimetableSlot(slot)
-            _toastMessage.value = "Jadwalka waa la kordhiyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
     fun deleteTimetableSlot(slotId: String) {
         viewModelScope.launch {
             repository.deleteTimetableSlot(slotId)
-            _toastMessage.value = "Qaybta jadwalka waa la tiray"
-        }
-    }
-
-    // Homework Management
-    fun addHomework(classId: String, className: String, subject: String, title: String, desc: String, due: String) {
-        viewModelScope.launch {
-            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val hw = Homework(
-                classId = classId,
-                className = className,
-                subject = subject,
-                title = title,
-                description = desc,
-                assignedDate = dateStr,
-                dueDate = due,
-                teacherName = _userProfile.value?.name ?: "Teacher"
-            )
-            repository.addHomework(hw)
-            _toastMessage.value = "Shaqo-guriga waa la diray"
-        }
-    }
-
-    fun deleteHomework(hwId: String) {
-        viewModelScope.launch {
-            repository.deleteHomework(hwId)
-            _toastMessage.value = "Shaqo-guriga waa la tiray"
+            _toastMessage.value = AppStrings.get("success_deleted", _language.value)
         }
     }
 
@@ -514,7 +608,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 message = message
             )
             repository.addRemark(remark)
-            _toastMessage.value = "Fariinta waa la keydiyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
@@ -530,7 +624,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 date = dateStr
             )
             repository.addNotification(notif)
-            _toastMessage.value = "Ogeysiiska waa la diray"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
@@ -548,7 +642,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             repository.updateSchoolConfig(updated)
             _schoolConfig.value = updated
-            _toastMessage.value = "Hagaajinta dugsiga waa la keydiyay"
+            _toastMessage.value = AppStrings.get("success_saved", _language.value)
         }
     }
 
@@ -559,6 +653,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _parentProfile.value = null
         _linkedStudents.value = emptyList()
         _selectedChild.value = null
+        _unlockedClassIds.value = emptySet()
+        _selectedClass.value = null
         _currentPortal.value = "HOME"
         onSignedOut()
     }

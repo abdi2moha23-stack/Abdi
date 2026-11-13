@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.models.*
@@ -27,6 +29,8 @@ import com.example.localization.AppStrings
 import com.example.pdf.ReportCardPdfGenerator
 import com.example.ui.MainViewModel
 import com.example.ui.theme.*
+import com.example.utils.AvatarImage
+import com.example.utils.PhotoPickerSection
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,36 +40,47 @@ fun TeacherDashboardScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val lang by viewModel.language.collectAsState()
     val schoolConfig by viewModel.schoolConfig.collectAsState()
     val currentTab by viewModel.currentTab.collectAsState()
 
     val classes by viewModel.classes.collectAsState()
     val selectedClass by viewModel.selectedClass.collectAsState()
+    val unlockedClassIds by viewModel.unlockedClassIds.collectAsState()
     val allStudents by viewModel.students.collectAsState()
+    val examFolders by viewModel.examFolders.collectAsState()
     val allExams by viewModel.examinations.collectAsState()
-    val allAttendance by viewModel.allAttendance.collectAsState()
     val allFees by viewModel.fees.collectAsState()
     val allFeePayments by viewModel.feePayments.collectAsState()
 
+    val isCurrentClassUnlocked = selectedClass != null && selectedClass!!.classId in unlockedClassIds
+
     // Filter by selected class
     val classStudents = remember(allStudents, selectedClass) {
-        if (selectedClass != null) allStudents.filter { it.classId == selectedClass?.classId } else allStudents
+        if (selectedClass != null) allStudents.filter { it.classId == selectedClass?.classId } else emptyList()
     }
-
     val classExams = remember(allExams, selectedClass) {
-        if (selectedClass != null) allExams.filter { it.classId == selectedClass?.classId } else allExams
+        if (selectedClass != null) allExams.filter { it.classId == selectedClass?.classId } else emptyList()
+    }
+    val classFees = remember(allFees, selectedClass) {
+        if (selectedClass != null) allFees.filter { it.classId == selectedClass?.classId } else emptyList()
+    }
+    val classFeePayments = remember(allFeePayments, selectedClass) {
+        if (selectedClass != null) allFeePayments.filter { it.classId == selectedClass?.classId } else emptyList()
     }
 
     // Dialog States
     var showRegisterStudentDialog by remember { mutableStateOf(false) }
+    var editStudentTarget by remember { mutableStateOf<Student?>(null) }
     var showCreateExamDialog by remember { mutableStateOf(false) }
     var showEnterMarksExam by remember { mutableStateOf<Examination?>(null) }
-    var showReportCardStudent by remember { mutableStateOf<Pair<Student, Examination>?>(null) }
+    var showAllReportCardsExam by remember { mutableStateOf<Examination?>(null) }
     var showCreateFeeDialog by remember { mutableStateOf(false) }
-    var showCreateHomeworkDialog by remember { mutableStateOf(false) }
+    var openedFeeFolder by remember { mutableStateOf<Fee?>(null) }
     var showRemarkDialogStudent by remember { mutableStateOf<Student?>(null) }
+
+    // Class switch password prompt state
+    var pendingUnlockClass by remember { mutableStateOf<ClassRoom?>(null) }
 
     Scaffold(
         topBar = {
@@ -79,7 +94,7 @@ fun TeacherDashboardScreen(
                     onBack = onBack
                 )
 
-                // Class Selector Bar
+                // Class Selector Bar (with Lock/Unlock indicator)
                 Surface(
                     color = BlueSurface,
                     tonalElevation = 2.dp,
@@ -99,17 +114,32 @@ fun TeacherDashboardScreen(
                         )
 
                         if (classes.isEmpty()) {
-                            Text("No classes created yet", fontSize = 12.sp, color = Color.Gray)
+                            Text(if (lang == "so") "Weli fasal lama abuurin" else "No classes created yet", fontSize = 12.sp, color = Color.Gray)
                         } else {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(classes) { c ->
+                                    val unlocked = c.classId in unlockedClassIds
                                     FilterChip(
-                                        selected = selectedClass?.classId == c.classId,
-                                        onClick = { viewModel.selectTeacherClass(c) },
+                                        selected = selectedClass?.classId == c.classId && unlocked,
+                                        onClick = {
+                                            if (unlocked) {
+                                                viewModel.selectTeacherClass(c)
+                                            } else {
+                                                pendingUnlockClass = c
+                                            }
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                if (unlocked) Icons.Default.LockOpen else Icons.Default.Lock,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        },
                                         label = { Text(c.name, fontWeight = FontWeight.Bold) },
                                         colors = FilterChipDefaults.filterChipColors(
                                             selectedContainerColor = NavyPrimary,
-                                            selectedLabelColor = Color.White
+                                            selectedLabelColor = Color.White,
+                                            selectedLeadingIconColor = AmberWarning
                                         ),
                                         modifier = Modifier.testTag("teacher_class_chip_${c.classId}")
                                     )
@@ -121,11 +151,13 @@ fun TeacherDashboardScreen(
             }
         },
         bottomBar = {
-            TeacherBottomNavigation(
-                currentTab = currentTab,
-                lang = lang,
-                onSelectTab = { viewModel.selectTab(it) }
-            )
+            if (isCurrentClassUnlocked) {
+                TeacherBottomNavigation(
+                    currentTab = currentTab,
+                    lang = lang,
+                    onSelectTab = { viewModel.selectTab(it) }
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -134,99 +166,200 @@ fun TeacherDashboardScreen(
                 .padding(padding)
                 .background(BackgroundLight)
         ) {
-            when (currentTab) {
-                "DASHBOARD" -> TeacherOverviewContent(
+            if (!isCurrentClassUnlocked) {
+                // MANDATORY Class Selection + Password Gate
+                ClassPasswordGateScreen(
                     lang = lang,
-                    selectedClass = selectedClass,
-                    studentsCount = classStudents.size,
-                    examsCount = classExams.size,
-                    onOpenAttendance = { viewModel.selectTab("ATTENDANCE") },
-                    onOpenRegisterStudent = { showRegisterStudentDialog = true },
-                    onOpenCreateExam = { showCreateExamDialog = true },
-                    onOpenHomework = { viewModel.selectTab("HOMEWORK") }
-                )
-                "STUDENTS" -> TeacherStudentsContent(
-                    lang = lang,
-                    students = classStudents,
-                    selectedClass = selectedClass,
-                    onRegisterStudent = { showRegisterStudentDialog = true },
-                    onWriteRemark = { showRemarkDialogStudent = it }
-                )
-                "ATTENDANCE" -> TeacherAttendanceContent(
-                    lang = lang,
-                    selectedClass = selectedClass,
-                    students = classStudents,
-                    viewModel = viewModel
-                )
-                "EXAMS" -> TeacherExamsContent(
-                    lang = lang,
-                    exams = classExams,
-                    students = classStudents,
-                    onCreateExam = { showCreateExamDialog = true },
-                    onEnterMarks = { showEnterMarksExam = it },
-                    onViewReportCard = { student, exam ->
-                        showReportCardStudent = Pair(student, exam)
+                    classes = classes,
+                    unlockedClassIds = unlockedClassIds,
+                    preselectedClass = pendingUnlockClass ?: selectedClass,
+                    onUnlockSuccess = { c ->
+                        pendingUnlockClass = null
+                        viewModel.selectTeacherClass(c)
+                    },
+                    onVerifyPassword = { c, pw ->
+                        viewModel.unlockClass(c, pw)
                     }
                 )
-                "FEES" -> TeacherFeesContent(
-                    lang = lang,
-                    selectedClass = selectedClass,
-                    students = classStudents,
-                    feePayments = allFeePayments.filter { it.classId == selectedClass?.classId },
-                    onCreateFee = { showCreateFeeDialog = true },
-                    onRecordPayment = { paymentId, amt, rcpt ->
-                        viewModel.recordFeePayment(paymentId, amt, rcpt)
-                    }
-                )
-                "HOMEWORK" -> TeacherHomeworkContent(
-                    lang = lang,
-                    selectedClass = selectedClass,
-                    viewModel = viewModel,
-                    onCreateHomework = { showCreateHomeworkDialog = true }
-                )
-                else -> TeacherOverviewContent(
-                    lang = lang,
-                    selectedClass = selectedClass,
-                    studentsCount = classStudents.size,
-                    examsCount = classExams.size,
-                    onOpenAttendance = { viewModel.selectTab("ATTENDANCE") },
-                    onOpenRegisterStudent = { showRegisterStudentDialog = true },
-                    onOpenCreateExam = { showCreateExamDialog = true },
-                    onOpenHomework = { viewModel.selectTab("HOMEWORK") }
-                )
+            } else {
+                when (currentTab) {
+                    "DASHBOARD" -> TeacherOverviewContent(
+                        lang = lang,
+                        selectedClass = selectedClass,
+                        studentsCount = classStudents.size,
+                        examsCount = classExams.size,
+                        feesCount = classFees.size,
+                        onOpenAttendance = { viewModel.selectTab("ATTENDANCE") },
+                        onOpenRegisterStudent = {
+                            editStudentTarget = null
+                            showRegisterStudentDialog = true
+                        },
+                        onOpenCreateExam = { showCreateExamDialog = true },
+                        onOpenFees = { viewModel.selectTab("FEES") }
+                    )
+                    "STUDENTS" -> TeacherStudentsContent(
+                        lang = lang,
+                        students = classStudents,
+                        onRegisterStudent = {
+                            editStudentTarget = null
+                            showRegisterStudentDialog = true
+                        },
+                        onEditStudent = {
+                            editStudentTarget = it
+                            showRegisterStudentDialog = true
+                        },
+                        onWriteRemark = { showRemarkDialogStudent = it }
+                    )
+                    "ATTENDANCE" -> TeacherAttendanceContent(
+                        lang = lang,
+                        selectedClass = selectedClass,
+                        students = classStudents,
+                        viewModel = viewModel
+                    )
+                    "EXAMS" -> TeacherExamsContent(
+                        lang = lang,
+                        exams = classExams,
+                        students = classStudents,
+                        onCreateExam = { showCreateExamDialog = true },
+                        onEnterMarks = { showEnterMarksExam = it },
+                        onViewAllReportCards = { exam ->
+                            showAllReportCardsExam = exam
+                        }
+                    )
+                    "FEES" -> TeacherFeesContent(
+                        lang = lang,
+                        fees = classFees,
+                        students = classStudents,
+                        feePayments = classFeePayments,
+                        onCreateFee = { showCreateFeeDialog = true },
+                        onOpenFeeFolder = { openedFeeFolder = it }
+                    )
+                    else -> TeacherOverviewContent(
+                        lang = lang,
+                        selectedClass = selectedClass,
+                        studentsCount = classStudents.size,
+                        examsCount = classExams.size,
+                        feesCount = classFees.size,
+                        onOpenAttendance = { viewModel.selectTab("ATTENDANCE") },
+                        onOpenRegisterStudent = {
+                            editStudentTarget = null
+                            showRegisterStudentDialog = true
+                        },
+                        onOpenCreateExam = { showCreateExamDialog = true },
+                        onOpenFees = { viewModel.selectTab("FEES") }
+                    )
+                }
             }
         }
     }
 
-    // Register Student Dialog
-    if (showRegisterStudentDialog && selectedClass != null) {
-        TeacherRegisterStudentDialog(
-            lang = lang,
-            classRoom = selectedClass!!,
-            onDismiss = { showRegisterStudentDialog = false },
-            onConfirm = { name, father, mother, phone, gender, admDate ->
-                viewModel.addStudent(
-                    fullName = name,
-                    fatherName = father,
-                    motherName = mother,
-                    phone = phone,
-                    gender = gender,
-                    classId = selectedClass!!.classId,
-                    className = selectedClass!!.name,
-                    admissionDate = admDate
-                )
-                showRegisterStudentDialog = false
+    // Class Switch Password Dialog when clicking a locked chip in top bar
+    if (pendingUnlockClass != null && isCurrentClassUnlocked) {
+        val target = pendingUnlockClass!!
+        var enteredPw by remember(target) { mutableStateOf("") }
+        var pwError by remember(target) { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { pendingUnlockClass = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = NavyPrimary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("${target.name} • ${AppStrings.get("class_access_code", lang)}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        if (lang == "so") "Geli furaha sirta ee fasalka ${target.name}:" else "Enter the access password for ${target.name}:",
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = enteredPw,
+                        onValueChange = {
+                            enteredPw = it
+                            pwError = false
+                        },
+                        label = { Text(AppStrings.get("class_access_code", lang)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = pwError,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (pwError) {
+                        Text(AppStrings.get("invalid_passcode", lang), color = RedDanger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (viewModel.unlockClass(target, enteredPw)) {
+                            pendingUnlockClass = null
+                        } else {
+                            pwError = true
+                        }
+                    }
+                ) {
+                    Text(AppStrings.get("unlock_class", lang))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingUnlockClass = null }) { Text(AppStrings.get("cancel", lang)) }
             }
         )
     }
 
-    // Create Exam Dialog
+    // Register / Edit Student Dialog (Optional Photo via Gallery or Camera)
+    if (showRegisterStudentDialog && selectedClass != null) {
+        TeacherRegisterStudentDialog(
+            lang = lang,
+            classRoom = selectedClass!!,
+            existingStudent = editStudentTarget,
+            onDismiss = {
+                showRegisterStudentDialog = false
+                editStudentTarget = null
+            },
+            onConfirm = { name, father, mother, phone, gender, admDate, photoBase64 ->
+                if (editStudentTarget != null) {
+                    viewModel.updateStudent(
+                        editStudentTarget!!.copy(
+                            fullName = name,
+                            fatherName = father,
+                            motherName = mother,
+                            parentPhone = phone,
+                            gender = gender,
+                            admissionDate = admDate,
+                            photoUrl = photoBase64
+                        )
+                    )
+                } else {
+                    viewModel.addStudent(
+                        fullName = name,
+                        fatherName = father,
+                        motherName = mother,
+                        phone = phone,
+                        gender = gender,
+                        classId = selectedClass!!.classId,
+                        className = selectedClass!!.name,
+                        admissionDate = admDate,
+                        photoUrl = photoBase64
+                    )
+                }
+                showRegisterStudentDialog = false
+                editStudentTarget = null
+            }
+        )
+    }
+
+    // Create Exam Dialog (with Admin ExamFolder picker)
     if (showCreateExamDialog && selectedClass != null) {
         TeacherCreateExamDialog(
             lang = lang,
             classRoom = selectedClass!!,
+            folders = examFolders,
             onDismiss = { showCreateExamDialog = false },
-            onConfirm = { name, type, subs, start, end, desc ->
+            onConfirm = { name, type, subs, start, end, desc, folderId, folderName ->
                 viewModel.createExamination(
                     name = name,
                     type = type,
@@ -235,14 +368,16 @@ fun TeacherDashboardScreen(
                     subjects = subs,
                     startDate = start,
                     endDate = end,
-                    desc = desc
+                    desc = desc,
+                    folderId = folderId,
+                    folderName = folderName
                 )
                 showCreateExamDialog = false
             }
         )
     }
 
-    // Enter Marks Dialog
+    // Enter Marks Dialog (includes per-student teacherRemarks explaining what the student deserves)
     if (showEnterMarksExam != null) {
         TeacherEnterMarksDialog(
             exam = showEnterMarksExam!!,
@@ -253,20 +388,19 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Report Card Dialog (with PDF Preview & Share)
-    if (showReportCardStudent != null) {
-        val (student, exam) = showReportCardStudent!!
-        TeacherReportCardDialog(
-            student = student,
-            exam = exam,
+    // All-Students Report Cards Dialog (Beautiful Table UI + PDF Download for EVERY student)
+    if (showAllReportCardsExam != null) {
+        TeacherAllReportCardsDialog(
+            exam = showAllReportCardsExam!!,
+            students = classStudents,
             school = schoolConfig,
             lang = lang,
             viewModel = viewModel,
-            onDismiss = { showReportCardStudent = null }
+            onDismiss = { showAllReportCardsExam = null }
         )
     }
 
-    // Create Class Fee Dialog
+    // Create Class Fee Folder Dialog
     if (showCreateFeeDialog && selectedClass != null) {
         TeacherCreateFeeDialog(
             lang = lang,
@@ -286,22 +420,20 @@ fun TeacherDashboardScreen(
         )
     }
 
-    // Create Homework Dialog
-    if (showCreateHomeworkDialog && selectedClass != null) {
-        TeacherCreateHomeworkDialog(
+    // Opened Fee Folder Dialog ("Gudbi" button in top corner + every student with "Bixiyay" button)
+    if (openedFeeFolder != null) {
+        val currentFee = classFees.firstOrNull { it.feeId == openedFeeFolder!!.feeId } ?: openedFeeFolder!!
+        TeacherFeeFolderDialog(
+            fee = currentFee,
+            students = classStudents,
+            payments = classFeePayments.filter { it.feeId == currentFee.feeId },
             lang = lang,
-            classRoom = selectedClass!!,
-            onDismiss = { showCreateHomeworkDialog = false },
-            onConfirm = { subject, title, desc, due ->
-                viewModel.addHomework(
-                    classId = selectedClass!!.classId,
-                    className = selectedClass!!.name,
-                    subject = subject,
-                    title = title,
-                    desc = desc,
-                    due = due
-                )
-                showCreateHomeworkDialog = false
+            onDismiss = { openedFeeFolder = null },
+            onSubmitFeeToParents = {
+                viewModel.publishFeeFolder(currentFee)
+            },
+            onMarkStudentPaid = { paymentId, amount, receiptNo ->
+                viewModel.recordFeePayment(paymentId, amount, receiptNo)
             }
         )
     }
@@ -318,6 +450,167 @@ fun TeacherDashboardScreen(
                 showRemarkDialogStudent = null
             }
         )
+    }
+}
+
+@Composable
+fun ClassPasswordGateScreen(
+    lang: String,
+    classes: List<ClassRoom>,
+    unlockedClassIds: Set<String>,
+    preselectedClass: ClassRoom?,
+    onUnlockSuccess: (ClassRoom) -> Unit,
+    onVerifyPassword: (ClassRoom, String) -> Boolean
+) {
+    var pickedClass by remember(preselectedClass, classes) {
+        mutableStateOf(preselectedClass ?: classes.firstOrNull())
+    }
+    var password by remember(pickedClass) { mutableStateOf("") }
+    var showError by remember(pickedClass) { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(NavyPrimary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.LockPerson, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(38.dp))
+            }
+        }
+
+        item {
+            Text(
+                text = AppStrings.get("enter_class_password", lang),
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                color = NavyPrimary
+            )
+            Text(
+                text = if (lang == "so")
+                    "Macallin kasta waa inuu doortaa fasalkiisa kadibna uu geliyaa furaha sirta ah ee fasalkaas si uu u galo."
+                else
+                    "Select your assigned class and enter its class password to access attendance, students, exams, and fees.",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(3.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        if (lang == "so") "1. Dooro Fasalka:" else "1. Select Class:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = NavyPrimary
+                    )
+
+                    if (classes.isEmpty()) {
+                        Text(
+                            if (lang == "so") "Maamulaha weli ma abuurin fasallo." else "No classes available yet. Contact Admin.",
+                            fontSize = 13.sp,
+                            color = RedDanger
+                        )
+                    } else {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(classes) { c ->
+                                val isSelected = pickedClass?.classId == c.classId
+                                val unlocked = c.classId in unlockedClassIds
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        pickedClass = c
+                                        showError = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (unlocked) Icons.Default.LockOpen else Icons.Default.Lock,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    label = { Text(c.name, fontWeight = FontWeight.SemiBold) }
+                                )
+                            }
+                        }
+                    }
+
+                    if (pickedClass != null) {
+                        Text(
+                            "${AppStrings.get("class_teacher", lang)}: ${pickedClass!!.classTeacherName.ifBlank { "-" }}",
+                            fontSize = 12.sp,
+                            color = BlueSecondary
+                        )
+
+                        Text(
+                            if (lang == "so") "2. Geli Furaha Sirta Fasalka (${pickedClass!!.name}):" else "2. Enter Password for ${pickedClass!!.name}:",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = NavyPrimary
+                        )
+
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                showError = false
+                            },
+                            label = { Text(AppStrings.get("class_access_code", lang)) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            isError = showError,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("teacher_class_password_input")
+                        )
+
+                        if (showError) {
+                            Text(
+                                AppStrings.get("invalid_passcode", lang),
+                                color = RedDanger,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                val target = pickedClass ?: return@Button
+                                if (onVerifyPassword(target, password)) {
+                                    onUnlockSuccess(target)
+                                } else {
+                                    showError = true
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("teacher_unlock_class_button")
+                        ) {
+                            Icon(Icons.Default.LockOpen, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(AppStrings.get("unlock_class", lang), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -363,27 +656,21 @@ fun TeacherBottomNavigation(
             label = { Text(AppStrings.get("fees", lang), fontSize = 10.sp) },
             modifier = Modifier.testTag("teacher_nav_fees")
         )
-        NavigationBarItem(
-            selected = currentTab == "HOMEWORK",
-            onClick = { onSelectTab("HOMEWORK") },
-            icon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
-            label = { Text(AppStrings.get("homework", lang), fontSize = 10.sp) },
-            modifier = Modifier.testTag("teacher_nav_homework")
-        )
     }
 }
 
-// Teacher Overview
+// Teacher Overview (NO Homework)
 @Composable
 fun TeacherOverviewContent(
     lang: String,
     selectedClass: ClassRoom?,
     studentsCount: Int,
     examsCount: Int,
+    feesCount: Int,
     onOpenAttendance: () -> Unit,
     onOpenRegisterStudent: () -> Unit,
     onOpenCreateExam: () -> Unit,
-    onOpenHomework: () -> Unit
+    onOpenFees: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -404,7 +691,7 @@ fun TeacherOverviewContent(
                         color = Color.White
                     )
                     Text(
-                        text = "Academic Year: ${selectedClass?.academicYear ?: "2025-2026"}",
+                        text = "${AppStrings.get("academic_year", lang)}: ${selectedClass?.academicYear ?: "2025-2026"}",
                         fontSize = 12.sp,
                         color = BlueLight
                     )
@@ -423,6 +710,11 @@ fun TeacherOverviewContent(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("$examsCount", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = AmberWarning)
                             Text(AppStrings.get("exams", lang), fontSize = 11.sp, color = BlueLight)
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$feesCount", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = GreenLight)
+                            Text(AppStrings.get("fees", lang), fontSize = 11.sp, color = BlueLight)
                         }
                     }
                 }
@@ -478,26 +770,26 @@ fun TeacherOverviewContent(
                 }
 
                 OutlinedButton(
-                    onClick = onOpenHomework,
+                    onClick = onOpenFees,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(AppStrings.get("homework", lang), fontSize = 12.sp)
+                    Text(AppStrings.get("fee_folders", lang), fontSize = 12.sp)
                 }
             }
         }
     }
 }
 
-// Teacher Students List
+// Teacher Students List (with Avatar photo & Edit button)
 @Composable
 fun TeacherStudentsContent(
     lang: String,
     students: List<Student>,
-    selectedClass: ClassRoom?,
     onRegisterStudent: () -> Unit,
+    onEditStudent: (Student) -> Unit,
     onWriteRemark: (Student) -> Unit
 ) {
     Column(
@@ -510,11 +802,7 @@ fun TeacherStudentsContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "${AppStrings.get("students", lang)} (${students.size})",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("${AppStrings.get("students", lang)} (${students.size})", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Button(
                 onClick = onRegisterStudent,
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
@@ -543,26 +831,22 @@ fun TeacherStudentsContent(
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .clip(CircleShape)
-                                        .background(BlueSecondary.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        student.fullName.take(2).uppercase(Locale.ROOT),
-                                        fontWeight = FontWeight.Bold,
-                                        color = BlueSecondary,
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                AvatarImage(
+                                    photoBase64 = student.photoUrl,
+                                    name = student.fullName,
+                                    size = 44.dp,
+                                    accentColor = BlueSecondary
+                                )
 
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                    Text("ID: ${student.studentId} • Parent: ${student.parentPhone}", fontSize = 12.sp, color = Color.Gray)
+                                    Text("ID: ${student.studentId} • ${student.parentPhone}", fontSize = 12.sp, color = Color.Gray)
+                                }
+
+                                IconButton(onClick = { onEditStudent(student) }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit Student", tint = BlueSecondary)
                                 }
 
                                 Button(
@@ -612,8 +896,7 @@ fun TeacherAttendanceContent(
     var selectedDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
     val attendanceMap = remember { mutableStateMapOf<String, String>() }
 
-    // Initialize or load attendance
-    LaunchedEffect(selectedClass, selectedDate) {
+    LaunchedEffect(selectedClass, selectedDate, students) {
         if (selectedClass != null) {
             val existing = viewModel.repository.getAttendance(selectedClass.classId, selectedDate)
             attendanceMap.clear()
@@ -643,18 +926,12 @@ fun TeacherAttendanceContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    AppStrings.get("attendance", lang),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("Date: $selectedDate", fontSize = 12.sp, color = Color.Gray)
+                Text(AppStrings.get("attendance", lang), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("${AppStrings.get("date", lang)}: ${formatDayAndDate(selectedDate, lang)}", fontSize = 12.sp, color = Color.Gray)
             }
 
             Button(
-                onClick = {
-                    students.forEach { attendanceMap[it.studentId] = "PRESENT" }
-                },
+                onClick = { students.forEach { attendanceMap[it.studentId] = "PRESENT" } },
                 colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.testTag("mark_all_present_button")
@@ -665,22 +942,19 @@ fun TeacherAttendanceContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Summary Bar
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             shape = RoundedCornerShape(10.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                Text("Jooga: $presentCount", color = GreenAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("Maqan: $absentCount", color = RedDanger, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("Daahay: $lateCount", color = AmberWarning, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("Cudurdaar: $excusedCount", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("${AppStrings.get("present", lang)}: $presentCount", color = GreenAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("${AppStrings.get("absent", lang)}: $absentCount", color = RedDanger, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("${AppStrings.get("late", lang)}: $lateCount", color = AmberWarning, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("${AppStrings.get("excused", lang)}: $excusedCount", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 Text(String.format(Locale.US, "%.0f%%", rate), color = NavyPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
             }
         }
@@ -709,18 +983,17 @@ fun TeacherAttendanceContent(
                             Text(student.studentId, fontSize = 11.sp, color = Color.Gray)
                         }
 
-                        // Status Selector Buttons
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            AttendanceStatusButton("P", "PRESENT", currentStatus == "PRESENT", GreenAccent) {
+                            AttendanceStatusButton("P", currentStatus == "PRESENT", GreenAccent) {
                                 attendanceMap[student.studentId] = "PRESENT"
                             }
-                            AttendanceStatusButton("A", "ABSENT", currentStatus == "ABSENT", RedDanger) {
+                            AttendanceStatusButton("A", currentStatus == "ABSENT", RedDanger) {
                                 attendanceMap[student.studentId] = "ABSENT"
                             }
-                            AttendanceStatusButton("L", "LATE", currentStatus == "LATE", AmberWarning) {
+                            AttendanceStatusButton("L", currentStatus == "LATE", AmberWarning) {
                                 attendanceMap[student.studentId] = "LATE"
                             }
-                            AttendanceStatusButton("E", "EXCUSED", currentStatus == "EXCUSED", Color.Gray) {
+                            AttendanceStatusButton("E", currentStatus == "EXCUSED", Color.Gray) {
                                 attendanceMap[student.studentId] = "EXCUSED"
                             }
                         }
@@ -747,10 +1020,7 @@ fun TeacherAttendanceContent(
             },
             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .testTag("save_attendance_button")
+            modifier = Modifier.fillMaxWidth().height(48.dp).testTag("save_attendance_button")
         ) {
             Icon(Icons.Default.Save, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
@@ -762,7 +1032,6 @@ fun TeacherAttendanceContent(
 @Composable
 fun AttendanceStatusButton(
     shortLabel: String,
-    status: String,
     isSelected: Boolean,
     color: Color,
     onClick: () -> Unit
@@ -770,9 +1039,7 @@ fun AttendanceStatusButton(
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = if (isSelected) color else Color(0xFFEDF2F7),
-        modifier = Modifier
-            .size(34.dp)
-            .clickable { onClick() }
+        modifier = Modifier.size(34.dp).clickable { onClick() }
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -785,7 +1052,7 @@ fun AttendanceStatusButton(
     }
 }
 
-// Teacher Exams Tab
+// Teacher Exams Tab (Report Cards button opens ALL students in class, not just 1!)
 @Composable
 fun TeacherExamsContent(
     lang: String,
@@ -793,7 +1060,7 @@ fun TeacherExamsContent(
     students: List<Student>,
     onCreateExam: () -> Unit,
     onEnterMarks: (Examination) -> Unit,
-    onViewReportCard: (Student, Examination) -> Unit
+    onViewAllReportCards: (Examination) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -805,11 +1072,7 @@ fun TeacherExamsContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                AppStrings.get("exams", lang),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(AppStrings.get("exams", lang), fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Button(
                 onClick = onCreateExam,
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
@@ -842,14 +1105,19 @@ fun TeacherExamsContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(exam.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = NavyPrimary)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(exam.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = NavyPrimary)
+                                    if (exam.folderName.isNotBlank()) {
+                                        Text("Folder: ${exam.folderName}", fontSize = 11.sp, color = BlueSecondary)
+                                    }
+                                }
                                 StatusBadge(status = exam.status, lang = lang)
                             }
 
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                "Type: ${exam.examType} • ${exam.subjects.size} subjects",
+                                "${exam.examType} • ${exam.subjects.size} ${AppStrings.get("subjects", lang)}",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -873,13 +1141,16 @@ fun TeacherExamsContent(
 
                                 if (students.isNotEmpty()) {
                                     OutlinedButton(
-                                        onClick = { onViewReportCard(students.first(), exam) },
+                                        onClick = { onViewAllReportCards(exam) },
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(AppStrings.get("view_report_card", lang), fontSize = 11.sp)
+                                        Text(
+                                            "${AppStrings.get("view_report_card", lang)} (${students.size})",
+                                            fontSize = 11.sp
+                                        )
                                     }
                                 }
                             }
@@ -891,18 +1162,16 @@ fun TeacherExamsContent(
     }
 }
 
-// Teacher Fees Content
+// Teacher Fees Content: Fee Folders -> Open Folder -> Top "Gudbi" button + per-student "Bixiyay" button
 @Composable
 fun TeacherFeesContent(
     lang: String,
-    selectedClass: ClassRoom?,
+    fees: List<Fee>,
     students: List<Student>,
     feePayments: List<FeePayment>,
     onCreateFee: () -> Unit,
-    onRecordPayment: (String, Double, String) -> Unit
+    onOpenFeeFolder: (Fee) -> Unit
 ) {
-    var showRecordPaymentDialog by remember { mutableStateOf<FeePayment?>(null) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -913,208 +1182,290 @@ fun TeacherFeesContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                AppStrings.get("fees", lang),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(AppStrings.get("fee_folders", lang), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (lang == "so") "Fur folder-ka si aad ardayda ula socoto una gudbiso" else "Tap a fee folder to submit to parents & mark payments",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+            }
             Button(
                 onClick = onCreateFee,
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.CreateNewFolder, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(if (lang == "so") "Fi cusub" else "New Fee")
+                Text(if (lang == "so") "Fii Cusub" else "New Fee")
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (feePayments.isEmpty()) {
+        if (fees.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(AppStrings.get("no_data", lang), color = Color.Gray)
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(feePayments) { p ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(p.studentName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                StatusBadge(status = p.status, lang = lang)
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("${p.feeName} • Total: $${p.amount} • Paid: $${p.amountPaid} • Bal: $${p.balance}", fontSize = 12.sp, color = Color.Gray)
+                items(fees) { fee ->
+                    val folderPayments = feePayments.filter { it.feeId == fee.feeId }
+                    val paidCount = folderPayments.count { it.status == "PAID" }
+                    val totalStudentsCount = maxOf(students.size, folderPayments.size)
 
-                            if (p.balance > 0) {
-                                Button(
-                                    onClick = { showRecordPaymentDialog = p },
-                                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
-                                ) {
-                                    Text(AppStrings.get("record_payment", lang), fontSize = 11.sp)
-                                }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenFeeFolder(fee) }
+                            .testTag("fee_folder_${fee.feeId}"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(3.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (fee.isPublished) GreenAccent.copy(alpha = 0.15f) else AmberWarning.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint = if (fee.isPublished) GreenAccent else Color(0xFFB7791F),
+                                    modifier = Modifier.size(28.dp)
+                                )
                             }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        fee.feeName,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = NavyPrimary,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (fee.isPublished) Color(0xFFC6F6D5) else Color(0xFFFEEBC8)
+                                    ) {
+                                        Text(
+                                            text = if (fee.isPublished) AppStrings.get("submitted", lang) else if (lang == "so") "Qabyo" else "Draft",
+                                            color = if (fee.isPublished) Color(0xFF22543D) else Color(0xFF7B341E),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "$${fee.amount} • ${AppStrings.get("due_date", lang)}: ${fee.dueDate}",
+                                    fontSize = 12.sp,
+                                    color = BlueSecondary
+                                )
+                                Text(
+                                    if (lang == "so")
+                                        "Bixiyay: $paidCount / $totalStudentsCount arday"
+                                    else
+                                        "Paid: $paidCount / $totalStudentsCount students",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = NavyPrimary)
                         }
                     }
                 }
             }
         }
     }
-
-    if (showRecordPaymentDialog != null) {
-        val p = showRecordPaymentDialog!!
-        var amtStr by remember { mutableStateOf(p.balance.toString()) }
-        var receiptStr by remember { mutableStateOf("RCP-${System.currentTimeMillis() % 100000}") }
-
-        AlertDialog(
-            onDismissRequest = { showRecordPaymentDialog = null },
-            title = { Text(AppStrings.get("record_payment", lang)) },
-            text = {
-                Column {
-                    Text("${p.studentName} • ${p.feeName}", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = amtStr,
-                        onValueChange = { amtStr = it },
-                        label = { Text(AppStrings.get("amount", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = receiptStr,
-                        onValueChange = { receiptStr = it },
-                        label = { Text(AppStrings.get("receipt_no", lang)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val amt = amtStr.toDoubleOrNull() ?: p.balance
-                        onRecordPayment(p.paymentId, amt, receiptStr)
-                        showRecordPaymentDialog = null
-                    }
-                ) {
-                    Text(AppStrings.get("save", lang))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRecordPaymentDialog = null }) { Text(AppStrings.get("cancel", lang)) }
-            }
-        )
-    }
 }
 
-// Teacher Homework Tab
 @Composable
-fun TeacherHomeworkContent(
+fun TeacherFeeFolderDialog(
+    fee: Fee,
+    students: List<Student>,
+    payments: List<FeePayment>,
     lang: String,
-    selectedClass: ClassRoom?,
-    viewModel: MainViewModel,
-    onCreateHomework: () -> Unit
+    onDismiss: () -> Unit,
+    onSubmitFeeToParents: () -> Unit,
+    onMarkStudentPaid: (String, Double, String) -> Unit
 ) {
-    val homeworkList by viewModel.repository.observeHomework(selectedClass?.classId ?: "").collectAsState(initial = emptyList())
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                AppStrings.get("homework", lang),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Button(
-                onClick = onCreateHomework,
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(AppStrings.get("add", lang))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(fee.feeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
+                    Text("$${fee.amount} • ${fee.className}", fontSize = 11.sp, color = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Top-right corner "Gudbi" (Submit) button to publish fee to every parent room
+                Button(
+                    onClick = onSubmitFeeToParents,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (fee.isPublished) GreenAccent else NavyPrimary
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.testTag("fee_folder_submit_button")
+                ) {
+                    Icon(
+                        if (fee.isPublished) Icons.Default.Check else Icons.Default.Send,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (fee.isPublished) AppStrings.get("submitted", lang) else AppStrings.get("submit_to_parents", lang),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-        }
+        },
+        text = {
+            val rows = remember(students, payments, fee) {
+                if (students.isNotEmpty()) {
+                    students.map { st ->
+                        payments.firstOrNull { it.studentId == st.studentId } ?: FeePayment(
+                            paymentId = "${fee.feeId}_${st.studentId}",
+                            feeId = fee.feeId,
+                            feeName = fee.feeName,
+                            studentId = st.studentId,
+                            studentName = st.fullName,
+                            classId = st.classId,
+                            className = st.className,
+                            amount = fee.amount,
+                            amountPaid = 0.0,
+                            balance = fee.amount,
+                            status = "UNPAID"
+                        )
+                    }
+                } else {
+                    payments
+                }
+            }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (homeworkList.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (rows.isEmpty()) {
                 Text(AppStrings.get("no_data", lang), color = Color.Gray)
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(homeworkList) { hw ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
+            } else {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(rows) { p ->
+                        val st = students.firstOrNull { it.studentId == p.studentId }
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(hw.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NavyPrimary)
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = BlueSurface
-                                ) {
-                                    Text(hw.subject, color = BlueSecondary, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    AvatarImage(
+                                        photoBase64 = st?.photoUrl ?: "",
+                                        name = p.studentName,
+                                        size = 36.dp,
+                                        accentColor = NavyPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(p.studentName, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text(
+                                            if (p.balance > 0) "${AppStrings.get("balance", lang)}: $${p.balance}"
+                                            else "${AppStrings.get("receipt_no", lang)}: ${p.receiptNo}",
+                                            fontSize = 11.sp,
+                                            color = if (p.balance > 0) RedDanger else GreenAccent
+                                        )
+                                    }
+                                }
+
+                                if (p.balance > 0) {
+                                    Button(
+                                        onClick = {
+                                            val rcpt = "RCP-${System.currentTimeMillis() % 100000}"
+                                            onMarkStudentPaid(p.paymentId, p.balance, rcpt)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = GreenAccent),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(34.dp).testTag("pay_btn_${p.studentId}")
+                                    ) {
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(AppStrings.get("paid_btn", lang), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    StatusBadge(status = "PAID", lang = lang)
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(hw.description, fontSize = 13.sp)
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text("Due Date: ${hw.dueDate}", fontSize = 11.sp, color = RedDanger, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK") }
         }
-    }
+    )
 }
 
-// Dialog: Register Student in Class
+// Dialog: Register / Edit Student in Class (Photo is OPTIONAL via Gallery or Camera)
 @Composable
 fun TeacherRegisterStudentDialog(
     lang: String,
     classRoom: ClassRoom,
+    existingStudent: Student?,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String, String, String) -> Unit
+    onConfirm: (String, String, String, String, String, String, String) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var father by remember { mutableStateOf("") }
-    var mother by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("M") }
-    var admDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
+    var name by remember(existingStudent) { mutableStateOf(existingStudent?.fullName ?: "") }
+    var father by remember(existingStudent) { mutableStateOf(existingStudent?.fatherName ?: "") }
+    var mother by remember(existingStudent) { mutableStateOf(existingStudent?.motherName ?: "") }
+    var phone by remember(existingStudent) { mutableStateOf(existingStudent?.parentPhone ?: "") }
+    var gender by remember(existingStudent) { mutableStateOf(existingStudent?.gender ?: "M") }
+    var admDate by remember(existingStudent) { mutableStateOf(existingStudent?.admissionDate?.ifBlank { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) } ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
+    var photoBase64 by remember(existingStudent) { mutableStateOf(existingStudent?.photoUrl ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(AppStrings.get("students", lang) + " - " + classRoom.name) },
+        title = { Text("${AppStrings.get("students", lang)} - ${classRoom.name}") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    PhotoPickerSection(
+                        photoBase64 = photoBase64,
+                        onPhotoChanged = { photoBase64 = it },
+                        label = AppStrings.get("photo_optional", lang),
+                        lang = lang
+                    )
+                }
                 item {
                     OutlinedTextField(
                         value = name,
@@ -1161,7 +1512,8 @@ fun TeacherRegisterStudentDialog(
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onConfirm(name, father, mother, phone, gender, admDate)
+                        // Photo is completely optional; empty string passes cleanly!
+                        onConfirm(name.trim(), father.trim(), mother.trim(), phone.trim(), gender, admDate, photoBase64)
                     }
                 }
             ) {
@@ -1174,16 +1526,18 @@ fun TeacherRegisterStudentDialog(
     )
 }
 
-// Dialog: Create Exam
+// Dialog: Create Exam (linked to an Admin ExamFolder)
 @Composable
 fun TeacherCreateExamDialog(
     lang: String,
     classRoom: ClassRoom,
+    folders: List<ExamFolder>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, List<ExamSubject>, String, String, String) -> Unit
+    onConfirm: (String, String, List<ExamSubject>, String, String, String, String, String) -> Unit
 ) {
+    var selectedFolder by remember(folders) { mutableStateOf(folders.firstOrNull()) }
     var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("MONTHLY") }
+    var type by remember { mutableStateOf(selectedFolder?.examType ?: "MONTHLY") }
     var subjectsStr by remember { mutableStateOf(classRoom.subjects.joinToString(", ")) }
     var startDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
     var endDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
@@ -1194,6 +1548,23 @@ fun TeacherCreateExamDialog(
         title = { Text(if (lang == "so") "Abuur Imtixaan Cusub" else "Create Examination") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (folders.isNotEmpty()) {
+                    item {
+                        Text(AppStrings.get("select_folder", lang), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = NavyPrimary)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(folders) { folder ->
+                                FilterChip(
+                                    selected = selectedFolder?.folderId == folder.folderId,
+                                    onClick = {
+                                        selectedFolder = folder
+                                        type = folder.examType
+                                    },
+                                    label = { Text(folder.name, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                    }
+                }
                 item {
                     OutlinedTextField(
                         value = name,
@@ -1235,7 +1606,16 @@ fun TeacherCreateExamDialog(
                     if (name.isNotBlank()) {
                         val subs = subjectsStr.split(",").map { it.trim() }.filter { it.isNotBlank() }
                             .map { ExamSubject(name = it, maxMarks = 100.0) }
-                        onConfirm(name, type, subs, startDate, endDate, desc)
+                        onConfirm(
+                            name.trim(),
+                            type,
+                            subs,
+                            startDate,
+                            endDate,
+                            desc.trim(),
+                            selectedFolder?.folderId ?: "",
+                            selectedFolder?.name ?: ""
+                        )
                     }
                 }
             ) {
@@ -1248,7 +1628,7 @@ fun TeacherCreateExamDialog(
     )
 }
 
-// Dialog: Enter Student Marks with Competition Ranking
+// Dialog: Enter Student Marks + Teacher Deserving Remarks per student
 @Composable
 fun TeacherEnterMarksDialog(
     exam: Examination,
@@ -1258,15 +1638,17 @@ fun TeacherEnterMarksDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    // Map of studentId -> (subjectName -> mark)
     val marksMap = remember { mutableStateMapOf<String, MutableMap<String, Double>>() }
+    val remarksMap = remember { mutableStateMapOf<String, String>() }
 
-    // Initialize with existing results or zeroes
     val existingResults by viewModel.repository.observeExamResults(exam.examId).collectAsState(initial = emptyList())
 
     LaunchedEffect(existingResults) {
         existingResults.forEach { res ->
             marksMap[res.studentId] = res.subjectMarks.toMutableMap()
+            if (res.teacherRemarks.isNotBlank()) {
+                remarksMap[res.studentId] = res.teacherRemarks
+            }
         }
     }
 
@@ -1275,38 +1657,51 @@ fun TeacherEnterMarksDialog(
         title = {
             Column {
                 Text(exam.name, fontWeight = FontWeight.Bold, color = NavyPrimary)
-                Text("Enter Marks for Class: ${exam.className}", fontSize = 12.sp, color = Color.Gray)
+                Text("${AppStrings.get("enter_marks", lang)} • ${exam.className}", fontSize = 12.sp, color = Color.Gray)
             }
         },
         text = {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(350.dp),
+                modifier = Modifier.fillMaxWidth().height(380.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(students) { student ->
                     val studentMarks = marksMap.getOrPut(student.studentId) { mutableMapOf() }
+                    var commentStr by remember(existingResults, student.studentId) {
+                        mutableStateOf(remarksMap[student.studentId] ?: "")
+                    }
+
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
-                            Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("ID: ${student.studentId}", fontSize = 11.sp, color = Color.Gray)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AvatarImage(photoBase64 = student.photoUrl, name = student.fullName, size = 32.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(student.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("ID: ${student.studentId}", fontSize = 11.sp, color = Color.Gray)
+                                }
+                            }
 
                             Spacer(modifier = Modifier.height(6.dp))
 
                             exam.subjects.forEach { sub ->
-                                var markStr by remember { mutableStateOf(studentMarks[sub.name]?.toString() ?: "") }
+                                var markStr by remember(existingResults, student.studentId, sub.name) {
+                                    mutableStateOf(
+                                        studentMarks[sub.name]?.let {
+                                            if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
+                                        } ?: ""
+                                    )
+                                }
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("${sub.name} (Max ${sub.maxMarks})", fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                    Text("${sub.name} (Max ${sub.maxMarks.toInt()})", fontSize = 12.sp, modifier = Modifier.weight(1f))
                                     OutlinedTextField(
                                         value = markStr,
                                         onValueChange = {
@@ -1319,6 +1714,25 @@ fun TeacherEnterMarksDialog(
                                     )
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedTextField(
+                                value = commentStr,
+                                onValueChange = {
+                                    commentStr = it
+                                    remarksMap[student.studentId] = it
+                                },
+                                label = { Text(AppStrings.get("teacher_remarks", lang), fontSize = 11.sp) },
+                                placeholder = {
+                                    Text(
+                                        if (lang == "so") "Qor waxa ardaygu u qalmo / qiimeynta..." else "Write what this student deserves...",
+                                        fontSize = 11.sp
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2
+                            )
                         }
                     }
                 }
@@ -1333,6 +1747,13 @@ fun TeacherEnterMarksDialog(
                         val totalMax = exam.subjects.sumOf { it.maxMarks }
                         val pct = if (totalMax > 0) (totalObt / totalMax * 100) else 0.0
                         val avg = if (exam.subjects.isNotEmpty()) totalObt / exam.subjects.size else 0.0
+                        val customRemark = remarksMap[s.studentId]?.trim().orEmpty()
+                        val autoRemark = when {
+                            pct >= 90 -> if (lang == "so") "Aad u wanaagsan! Waxqabad heer sare ah." else "Excellent work! Truly outstanding performance."
+                            pct >= 75 -> if (lang == "so") "Wanaagsan, dadaalkaaga sii wad." else "Very good performance, keep up the great effort."
+                            pct >= 50 -> if (lang == "so") "Waa fiican yahay, balse dadaal dheeri ah ayaa loo baahan yahay." else "Satisfactory, more revision is encouraged."
+                            else -> if (lang == "so") "Waxaad u baahan tahay caawinaad iyo dadaal xooggan." else "Needs dedicated focus and additional support."
+                        }
 
                         ExamResult(
                             examId = exam.examId,
@@ -1346,7 +1767,7 @@ fun TeacherEnterMarksDialog(
                             totalMax = totalMax,
                             percentage = pct,
                             average = avg,
-                            teacherRemarks = "Good effort and performance."
+                            teacherRemarks = customRemark.ifBlank { autoRemark }
                         )
                     }
                     viewModel.submitExamResults(exam, resultsList)
@@ -1363,11 +1784,11 @@ fun TeacherEnterMarksDialog(
     )
 }
 
-// Dialog: Report Card Preview & Download PDF
+// Dialog: ALL-Students Report Cards Browser + PDF Export
 @Composable
-fun TeacherReportCardDialog(
-    student: Student,
+fun TeacherAllReportCardsDialog(
     exam: Examination,
+    students: List<Student>,
     school: SchoolConfig,
     lang: String,
     viewModel: MainViewModel,
@@ -1375,98 +1796,98 @@ fun TeacherReportCardDialog(
 ) {
     val context = LocalContext.current
     val results by viewModel.repository.observeExamResults(exam.examId).collectAsState(initial = emptyList())
-    val studentResult = results.firstOrNull { it.studentId == student.studentId } ?: ExamResult(
-        examId = exam.examId,
-        studentId = student.studentId,
-        studentName = student.fullName,
-        classId = student.classId,
-        className = student.className,
-        totalObtained = 85.0,
-        totalMax = 100.0,
-        percentage = 85.0,
-        grade = "A",
-        position = 1L
-    )
+    var selectedStudentFilter by remember { mutableStateOf<String?>(null) } // null = All students
+
+    val displayList = remember(students, results, selectedStudentFilter) {
+        val base = students.map { st ->
+            val res = results.firstOrNull { it.studentId == st.studentId } ?: ExamResult(
+                examId = exam.examId,
+                examName = exam.name,
+                studentId = st.studentId,
+                studentName = st.fullName,
+                classId = st.classId,
+                className = st.className,
+                subjectMarks = exam.subjects.associate { it.name to 0.0 },
+                totalObtained = 0.0,
+                totalMax = exam.subjects.sumOf { it.maxMarks },
+                percentage = 0.0,
+                grade = "-",
+                position = 0L
+            )
+            st to res
+        }.sortedBy { if (it.second.position > 0) it.second.position else Long.MAX_VALUE }
+
+        if (selectedStudentFilter != null) base.filter { it.first.studentId == selectedStudentFilter } else base
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(AppStrings.get("view_report_card", lang), fontWeight = FontWeight.Bold, color = NavyPrimary)
-                StatusBadge(status = exam.status, lang = lang)
+            Column {
+                Text("${AppStrings.get("view_report_card", lang)} • ${exam.className}", fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 15.sp)
+                Text("${exam.name} (${students.size} ${AppStrings.get("students", lang)})", fontSize = 11.sp, color = Color.Gray)
             }
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text("${student.fullName} • ${student.studentId}", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("${exam.name} • ${exam.className} • ${exam.academicYear}", fontSize = 12.sp, color = Color.Gray)
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Total Marks:", fontSize = 13.sp)
-                            Text("${studentResult.totalObtained} / ${studentResult.totalMax}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Percentage:", fontSize = 13.sp)
-                            Text(String.format(Locale.US, "%.1f%%", studentResult.percentage), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Grade:", fontSize = 13.sp)
-                            Text(studentResult.grade, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = GreenAccent)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Class Rank (Competition):", fontSize = 13.sp)
-                            Text("#${studentResult.position}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AmberWarning)
-                        }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    item {
+                        FilterChip(
+                            selected = selectedStudentFilter == null,
+                            onClick = { selectedStudentFilter = null },
+                            label = { Text("${AppStrings.get("all_students", lang)} (${students.size})", fontSize = 11.sp) }
+                        )
+                    }
+                    items(students) { st ->
+                        FilterChip(
+                            selected = selectedStudentFilter == st.studentId,
+                            onClick = { selectedStudentFilter = st.studentId },
+                            label = { Text(st.fullName.substringBefore(" "), fontSize = 11.sp) }
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Button(
-                    onClick = {
-                        val pdfFile = ReportCardPdfGenerator.generateReportCard(
-                            context = context,
-                            school = school,
-                            student = student,
-                            exam = exam,
-                            result = studentResult,
-                            language = lang
-                        )
-                        if (pdfFile != null) {
-                            ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
-                        } else {
-                            Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    modifier = Modifier.fillMaxWidth()
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(Icons.Default.Download, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(AppStrings.get("download_pdf", lang))
+                    items(displayList) { (st, res) ->
+                        Column {
+                            BeautifulReportCardView(
+                                school = school,
+                                student = st,
+                                exam = exam,
+                                result = res,
+                                lang = lang
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    val pdfFile = ReportCardPdfGenerator.generateReportCard(
+                                        context = context,
+                                        school = school,
+                                        student = st,
+                                        exam = exam,
+                                        result = res,
+                                        language = lang
+                                    )
+                                    if (pdfFile != null) {
+                                        ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
+                                    } else {
+                                        Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("${AppStrings.get("download_pdf", lang)} (${st.fullName})", fontSize = 11.sp)
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1476,7 +1897,7 @@ fun TeacherReportCardDialog(
     )
 }
 
-// Dialog: Create Class Fee
+// Dialog: Create Class Fee Folder
 @Composable
 fun TeacherCreateFeeDialog(
     lang: String,
@@ -1491,14 +1912,14 @@ fun TeacherCreateFeeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Class Fee - " + classRoom.name) },
+        title = { Text("${AppStrings.get("fee_folders", lang)} - ${classRoom.name}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = feeName,
                     onValueChange = { feeName = it },
                     label = { Text(AppStrings.get("fee_name", lang)) },
-                    placeholder = { Text("e.g. November School Tuition") },
+                    placeholder = { Text("e.g. December Tuition Fee") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -1520,67 +1941,8 @@ fun TeacherCreateFeeDialog(
                 onClick = {
                     val amt = amountStr.toDoubleOrNull() ?: 0.0
                     if (feeName.isNotBlank() && amt > 0) {
-                        onConfirm(feeName, amt, dueDate, desc)
+                        onConfirm(feeName.trim(), amt, dueDate.trim(), desc)
                     }
-                }
-            ) {
-                Text(AppStrings.get("save", lang))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.get("cancel", lang)) }
-        }
-    )
-}
-
-// Dialog: Create Homework
-@Composable
-fun TeacherCreateHomeworkDialog(
-    lang: String,
-    classRoom: ClassRoom,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String) -> Unit
-) {
-    var subject by remember { mutableStateOf(classRoom.subjects.firstOrNull() ?: "Math") }
-    var title by remember { mutableStateOf("") }
-    var desc by remember { mutableStateOf("") }
-    var dueDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(AppStrings.get("homework", lang) + " - " + classRoom.name) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = subject,
-                    onValueChange = { subject = it },
-                    label = { Text(AppStrings.get("subjects", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(AppStrings.get("title", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = desc,
-                    onValueChange = { desc = it },
-                    label = { Text(AppStrings.get("description", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = dueDate,
-                    onValueChange = { dueDate = it },
-                    label = { Text(AppStrings.get("due_date", lang)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (title.isNotBlank()) onConfirm(subject, title, desc, dueDate)
                 }
             ) {
                 Text(AppStrings.get("save", lang))
@@ -1605,15 +1967,13 @@ fun TeacherWriteRemarkDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Teacher Remark - " + student.fullName) },
+        title = { Text("${AppStrings.get("remarks", lang)} - ${student.fullName}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Select Category:", fontSize = 12.sp)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     item { FilterChip(selected = category == "GOOD_PERFORMANCE", onClick = { category = "GOOD_PERFORMANCE" }, label = { Text("Good Performance") }) }
                     item { FilterChip(selected = category == "EXCELLENT_BEHAVIOR", onClick = { category = "EXCELLENT_BEHAVIOR" }, label = { Text("Excellent Behavior") }) }
                     item { FilterChip(selected = category == "NEEDS_IMPROVEMENT", onClick = { category = "NEEDS_IMPROVEMENT" }, label = { Text("Needs Improvement") }) }
-                    item { FilterChip(selected = category == "HOMEWORK_PROBLEM", onClick = { category = "HOMEWORK_PROBLEM" }, label = { Text("Homework Issue") }) }
                 }
 
                 OutlinedTextField(
@@ -1627,11 +1987,7 @@ fun TeacherWriteRemarkDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (message.isNotBlank()) onConfirm(category, message)
-                }
-            ) {
+            Button(onClick = { if (message.isNotBlank()) onConfirm(category, message.trim()) }) {
                 Text(AppStrings.get("save", lang))
             }
         },

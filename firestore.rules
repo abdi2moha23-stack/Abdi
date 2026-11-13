@@ -52,6 +52,12 @@ service cloud.firestore {
       allow write: if isAuthenticated() && isSingleSchool(request.resource.data.schoolId);
     }
 
+    // Exam Folders (Admin-created examination containers)
+    match /exam_folders/{folderId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isSingleSchool(request.resource.data.schoolId);
+    }
+
     // Examinations
     match /examinations/{examId} {
       allow read: if isAuthenticated();

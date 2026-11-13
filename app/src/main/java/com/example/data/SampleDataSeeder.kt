@@ -122,10 +122,32 @@ object SampleDataSeeder {
                 db.collection("students").document(s3.studentId).set(s3).await()
                 db.collection("students").document(s4.studentId).set(s4).await()
 
+                // 3b. Exam Folders
+                val folder1 = ExamFolder(
+                    folderId = "folder_midterm_1",
+                    schoolId = FIXED_SCHOOL_ID,
+                    name = "Midterm Term 1 (2025-2026)",
+                    examType = "MIDTERM",
+                    academicYear = "2025-2026",
+                    description = "Folder-ka Imtixaanka Nus-Sannadka ee dhammaan fasallada"
+                )
+                val folder2 = ExamFolder(
+                    folderId = "folder_monthly_nov",
+                    schoolId = FIXED_SCHOOL_ID,
+                    name = "Imtixaanka Bisha Nofembar",
+                    examType = "MONTHLY",
+                    academicYear = "2025-2026",
+                    description = "Qiimeynta billeedka ee dugsiga"
+                )
+                db.collection("exam_folders").document(folder1.folderId).set(folder1).await()
+                db.collection("exam_folders").document(folder2.folderId).set(folder2).await()
+
                 // 4. Examination
                 val exam1 = Examination(
                     examId = "exam_midterm_1",
                     schoolId = FIXED_SCHOOL_ID,
+                    folderId = folder1.folderId,
+                    folderName = folder1.name,
                     name = "Imtixaanka Nus-Sannadka (Midterm Exam)",
                     examType = "MIDTERM",
                     classId = "class_form1a",
@@ -236,7 +258,8 @@ object SampleDataSeeder {
                     className = class1.name,
                     amount = 20.0,
                     dueDate = "2026-11-20",
-                    description = "Monthly Tuition Fee"
+                    description = "Monthly Tuition Fee",
+                    isPublished = true
                 )
                 db.collection("fees").document(fee1.feeId).set(fee1).await()
 
@@ -253,6 +276,7 @@ object SampleDataSeeder {
                     amountPaid = 20.0,
                     balance = 0.0,
                     status = "PAID",
+                    isPublished = true,
                     paymentDate = "2026-11-05",
                     receiptNo = "RCP-84912"
                 )
@@ -268,7 +292,8 @@ object SampleDataSeeder {
                     amount = 20.0,
                     amountPaid = 0.0,
                     balance = 20.0,
-                    status = "UNPAID"
+                    status = "UNPAID",
+                    isPublished = true
                 )
                 db.collection("fee_payments").document(p1.paymentId).set(p1).await()
                 db.collection("fee_payments").document(p2.paymentId).set(p2).await()
@@ -343,6 +368,111 @@ object SampleDataSeeder {
                 db.collection("notifications").document(notif1.notificationId).set(notif1).await()
 
                 Log.d("Seeder", "Initial data seeded successfully!")
+            }
+
+            // Ensure exam_folders exist even on previously seeded databases
+            val foldersSnapshot = db.collection("exam_folders")
+                .whereEqualTo("schoolId", FIXED_SCHOOL_ID)
+                .limit(1)
+                .get()
+                .await()
+            if (foldersSnapshot.isEmpty) {
+                val folder1 = ExamFolder(
+                    folderId = "folder_midterm_1",
+                    schoolId = FIXED_SCHOOL_ID,
+                    name = "Midterm Term 1 (2025-2026)",
+                    examType = "MIDTERM",
+                    academicYear = "2025-2026",
+                    description = "Folder-ka Imtixaanka Nus-Sannadka ee dhammaan fasallada"
+                )
+                val folder2 = ExamFolder(
+                    folderId = "folder_monthly_nov",
+                    schoolId = FIXED_SCHOOL_ID,
+                    name = "Imtixaanka Bisha Nofembar",
+                    examType = "MONTHLY",
+                    academicYear = "2025-2026",
+                    description = "Qiimeynta billeedka ee dugsiga"
+                )
+                db.collection("exam_folders").document(folder1.folderId).set(folder1).await()
+                db.collection("exam_folders").document(folder2.folderId).set(folder2).await()
+            }
+
+            // Ensure sample multi-day attendance records exist for clickable Parent date lists
+            val attSnapshot = db.collection("attendance")
+                .whereEqualTo("schoolId", FIXED_SCHOOL_ID)
+                .limit(1)
+                .get()
+                .await()
+            if (attSnapshot.isEmpty) {
+                val sampleDays = listOf(
+                    DailyAttendance(
+                        attendanceId = "class_form1a_2026-02-20",
+                        schoolId = FIXED_SCHOOL_ID,
+                        classId = "class_form1a",
+                        className = "Form 1A",
+                        date = "2026-02-20",
+                        teacherId = "teacher_1",
+                        teacherName = "Ustadh Ahmed Ali",
+                        records = listOf(
+                            AttendanceRecord("IFT-101", "Abdi Mohamed Farah", "LATE"),
+                            AttendanceRecord("IFT-102", "Amina Hassan Warsame", "PRESENT"),
+                            AttendanceRecord("IFT-103", "Khadar Omar Guled", "PRESENT"),
+                            AttendanceRecord("IFT-104", "Sahra Osman Shire", "ABSENT")
+                        ),
+                        presentCount = 2, absentCount = 1, lateCount = 1, excusedCount = 0
+                    ),
+                    DailyAttendance(
+                        attendanceId = "class_form1a_2026-02-22",
+                        schoolId = FIXED_SCHOOL_ID,
+                        classId = "class_form1a",
+                        className = "Form 1A",
+                        date = "2026-02-22",
+                        teacherId = "teacher_1",
+                        teacherName = "Ustadh Ahmed Ali",
+                        records = listOf(
+                            AttendanceRecord("IFT-101", "Abdi Mohamed Farah", "LATE"),
+                            AttendanceRecord("IFT-102", "Amina Hassan Warsame", "ABSENT"),
+                            AttendanceRecord("IFT-103", "Khadar Omar Guled", "PRESENT"),
+                            AttendanceRecord("IFT-104", "Sahra Osman Shire", "PRESENT")
+                        ),
+                        presentCount = 2, absentCount = 1, lateCount = 1, excusedCount = 0
+                    ),
+                    DailyAttendance(
+                        attendanceId = "class_form1a_2026-02-23",
+                        schoolId = FIXED_SCHOOL_ID,
+                        classId = "class_form1a",
+                        className = "Form 1A",
+                        date = "2026-02-23",
+                        teacherId = "teacher_1",
+                        teacherName = "Ustadh Ahmed Ali",
+                        records = listOf(
+                            AttendanceRecord("IFT-101", "Abdi Mohamed Farah", "PRESENT"),
+                            AttendanceRecord("IFT-102", "Amina Hassan Warsame", "PRESENT"),
+                            AttendanceRecord("IFT-103", "Khadar Omar Guled", "EXCUSED"),
+                            AttendanceRecord("IFT-104", "Sahra Osman Shire", "PRESENT")
+                        ),
+                        presentCount = 3, absentCount = 0, lateCount = 0, excusedCount = 1
+                    ),
+                    DailyAttendance(
+                        attendanceId = "class_form1a_2026-02-24",
+                        schoolId = FIXED_SCHOOL_ID,
+                        classId = "class_form1a",
+                        className = "Form 1A",
+                        date = "2026-02-24",
+                        teacherId = "teacher_1",
+                        teacherName = "Ustadh Ahmed Ali",
+                        records = listOf(
+                            AttendanceRecord("IFT-101", "Abdi Mohamed Farah", "ABSENT"),
+                            AttendanceRecord("IFT-102", "Amina Hassan Warsame", "PRESENT"),
+                            AttendanceRecord("IFT-103", "Khadar Omar Guled", "PRESENT"),
+                            AttendanceRecord("IFT-104", "Sahra Osman Shire", "PRESENT")
+                        ),
+                        presentCount = 3, absentCount = 1, lateCount = 0, excusedCount = 0
+                    )
+                )
+                for (att in sampleDays) {
+                    db.collection("attendance").document(att.attendanceId).set(att).await()
+                }
             }
         } catch (e: Exception) {
             Log.e("Seeder", "Error during seeding: ${e.message}", e)

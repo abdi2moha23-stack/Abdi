@@ -226,6 +226,28 @@ class SchoolRepository(private val db: FirebaseFirestore) {
             .map { it.toObjects(DailyAttendance::class.java) }
     }
 
+    // --- Exam Folders ---
+    fun observeExamFolders(): Flow<List<ExamFolder>> {
+        return db.collection("exam_folders")
+            .whereEqualTo("schoolId", FIXED_SCHOOL_ID)
+            .snapshots()
+            .map { it.toObjects(ExamFolder::class.java) }
+    }
+
+    suspend fun saveExamFolder(folder: ExamFolder) {
+        val docRef = if (folder.folderId.isNotBlank()) {
+            db.collection("exam_folders").document(folder.folderId)
+        } else {
+            db.collection("exam_folders").document()
+        }
+        val data = folder.copy(folderId = docRef.id, schoolId = FIXED_SCHOOL_ID)
+        docRef.set(data).await()
+    }
+
+    suspend fun deleteExamFolder(folderId: String) {
+        db.collection("exam_folders").document(folderId).delete().await()
+    }
+
     // --- Examinations ---
     fun observeExaminations(): Flow<List<Examination>> {
         return db.collection("examinations")
@@ -362,7 +384,7 @@ class SchoolRepository(private val db: FirebaseFirestore) {
 
     suspend fun addFee(fee: Fee, studentsInClass: List<Student>) {
         val feeRef = if (fee.feeId.isNotBlank()) db.collection("fees").document(fee.feeId) else db.collection("fees").document()
-        val data = fee.copy(feeId = feeRef.id, schoolId = FIXED_SCHOOL_ID)
+        val data = fee.copy(feeId = feeRef.id, schoolId = FIXED_SCHOOL_ID, isPublished = fee.isPublished)
         feeRef.set(data).await()
 
         // Generate FeePayment records for every student in the class
@@ -382,9 +404,64 @@ class SchoolRepository(private val db: FirebaseFirestore) {
                 amount = fee.amount,
                 amountPaid = 0.0,
                 balance = fee.amount,
-                status = "UNPAID"
+                status = "UNPAID",
+                isPublished = fee.isPublished
             )
             batch.set(paymentRef, payment)
+        }
+        batch.commit().await()
+    }
+
+    suspend fun publishFeeToParents(fee: Fee, studentsInClass: List<Student>, dateStr: String) {
+        val feeRef = db.collection("fees").document(fee.feeId)
+        feeRef.update("isPublished", true).await()
+
+        val existingSnapshot = db.collection("fee_payments")
+            .whereEqualTo("feeId", fee.feeId)
+            .get()
+            .await()
+
+        val existingStudentIds = existingSnapshot.documents.mapNotNull { it.getString("studentId") }.toSet()
+        val batch = db.batch()
+
+        for (doc in existingSnapshot.documents) {
+            batch.update(doc.reference, "isPublished", true)
+        }
+
+        // Ensure every student currently in the class has a published FeePayment entry
+        for (student in studentsInClass) {
+            if (student.studentId !in existingStudentIds) {
+                val paymentId = "${fee.feeId}_${student.studentId}"
+                val paymentRef = db.collection("fee_payments").document(paymentId)
+                val payment = FeePayment(
+                    paymentId = paymentId,
+                    schoolId = FIXED_SCHOOL_ID,
+                    feeId = fee.feeId,
+                    feeName = fee.feeName,
+                    studentId = student.studentId,
+                    studentName = student.fullName,
+                    classId = student.classId,
+                    className = student.className,
+                    amount = fee.amount,
+                    amountPaid = 0.0,
+                    balance = fee.amount,
+                    status = "UNPAID",
+                    isPublished = true
+                )
+                batch.set(paymentRef, payment)
+            }
+            // Send fee notification to each student's Parent Room
+            val notifRef = db.collection("notifications").document()
+            val notif = SchoolNotification(
+                notificationId = notifRef.id,
+                schoolId = FIXED_SCHOOL_ID,
+                targetRole = "PARENT",
+                targetStudentId = student.studentId,
+                title = "Ogeysiis Fii Cusub: ${fee.feeName}",
+                message = "Waxaa ${student.fullName} (${fee.className}) lagu soo rogay fiiga '${fee.feeName}' oo dhan $${fee.amount} (Taariikhda kama dambaysta: ${fee.dueDate}).",
+                date = dateStr
+            )
+            batch.set(notifRef, notif)
         }
         batch.commit().await()
     }
@@ -418,10 +495,25 @@ class SchoolRepository(private val db: FirebaseFirestore) {
                     "amountPaid" to totalPaid,
                     "balance" to remaining,
                     "status" to status,
+                    "isPublished" to true,
                     "receiptNo" to receiptNo,
                     "paymentDate" to date
                 )
             ).await()
+
+            // Send automatic receipt + notification to Parent Room
+            val notifRef = db.collection("notifications").document()
+            val notif = SchoolNotification(
+                notificationId = notifRef.id,
+                schoolId = FIXED_SCHOOL_ID,
+                targetRole = "PARENT",
+                targetStudentId = payment.studentId,
+                title = "Rasiidka Lacag Bixinta: ${payment.feeName}",
+                message = "Mahadsanid! Ardayga ${payment.studentName} waxaa laga guddoomay $$newPaidAmount ee '${payment.feeName}'. Haraaga: $$remaining. Rasiidka: $receiptNo ($date).",
+                receiptNo = receiptNo,
+                date = date
+            )
+            notifRef.set(notif).await()
         }
     }
 

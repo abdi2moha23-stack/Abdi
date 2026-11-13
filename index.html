@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="so">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iftin Academy — Interactive App Preview</title>
+  <style>
+    :root {
+      --navy: #1A365D;
+      --navy-dark: #0F223D;
+      --blue: #2B6CB0;
+      --blue-surface: #EBF8FF;
+      --green: #2F855A;
+      --amber: #D69E2E;
+      --red: #E53E3E;
+      --bg: #F1F5F9;
+      --text: #1E293B;
+      --muted: #64748B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: radial-gradient(circle at top, #1E3A8A 0%, #0F223D 65%, #071224 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: #fff;
+    }
+    .preview-header {
+      text-align: center;
+      margin-bottom: 14px;
+      max-width: 440px;
+    }
+    .preview-badge {
+      display: inline-block;
+      background: rgba(214, 158, 46, 0.2);
+      border: 1px solid rgba(214, 158, 46, 0.55);
+      color: #FBD38D;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .preview-tip {
+      font-size: 12px;
+      color: #CBD5E1;
+      line-height: 1.45;
+    }
+    .preview-tip code { color: #90CDF4; font-weight: 700; }
+
+    /* Phone Shell */
+    .phone {
+      width: 380px;
+      max-width: 100%;
+      height: 760px;
+      max-height: 88vh;
+      background: #0B1120;
+      border-radius: 42px;
+      padding: 12px;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.16);
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-screen {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 32px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      color: var(--text);
+      position: relative;
+    }
+    .notch {
+      width: 116px;
+      height: 20px;
+      background: #0B1120;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      margin: 0 auto;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+    }
+
+    .app-topbar {
+      background: var(--navy);
+      color: #fff;
+      padding: 26px 14px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 8px; }
+    .back-btn {
+      background: rgba(255,255,255,0.12);
+      border: none;
+      color: #fff;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 15px;
+    }
+    .app-topbar-title { font-size: 14px; font-weight: 800; }
+    .app-topbar-sub { font-size: 11px; color: #90CDF4; }
+    .lang-pill {
+      background: var(--navy-dark);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .screen-body { flex: 1; overflow-y: auto; padding: 14px; }
+    .welcome-bg { background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%); color: #fff; text-align: center; }
+    .logo-circle { width: 86px; height: 86px; border-radius: 50%; border: 3px solid var(--amber); margin: 8px auto 12px; overflow: hidden; background: #fff; }
+    .logo-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+    .single-badge {
+      display: inline-block;
+      background: rgba(43, 108, 176, 0.35);
+      border: 1px solid rgba(214, 158, 46, 0.65);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .role-card { text-align: left; border-radius: 14px; padding: 14px; margin-bottom: 11px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); transition: transform 0.12s ease; }
+    .role-card:hover { transform: scale(1.01); }
+    .role-admin { background: linear-gradient(90deg, #1E3A8A, #172554); }
+    .role-teacher { background: linear-gradient(90deg, #1E40AF, #1E293B); }
+    .role-parent { background: linear-gradient(90deg, #065F46, #0F172A); }
+    .role-title { font-size: 15px; font-weight: 800; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    .role-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.16); }
+    .role-desc { font-size: 11px; color: #CBD5E1; margin-top: 5px; line-height: 1.4; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .stat-box { background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .stat-label { font-size: 10px; color: var(--muted); font-weight: 600; }
+    .stat-val { font-size: 18px; font-weight: 800; color: var(--navy); margin-top: 2px; }
+
+    .card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .card-title { font-size: 13px; font-weight: 800; color: var(--navy); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .badge { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
+    .badge-green { background: #C6F6D5; color: #22543D; }
+    .badge-amber { background: #FEEBC8; color: #7B341E; }
+    .badge-red { background: #FED7D7; color: #742A2A; }
+    .badge-blue { background: #BEE3F8; color: #2A4365; }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-amber { background: var(--amber); color: #000; }
+    .btn-outline { background: transparent; border: 1px solid #CBD5E1; color: var(--navy); }
+    .btn-sm { padding: 5px 8px; font-size: 11px; }
+    .btn-full { width: 100%; }
+
+    .input {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid #CBD5E1;
+      font-size: 12px;
+      margin-bottom: 8px;
+      outline: none;
+    }
+    .input:focus { border-color: var(--navy); }
+
+    .row-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 12px;
+      gap: 8px;
+    }
+    .row-item:last-child { border-bottom: none; }
+
+    .att-btns { display: flex; gap: 4px; }
+    .att-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: none;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #EDF2F7;
+      color: #1E293B;
+    }
+    .att-btn.active-P { background: var(--green); color: #fff; }
+    .att-btn.active-A { background: var(--red); color: #fff; }
+    .att-btn.active-L { background: var(--amber); color: #fff; }
+    .att-btn.active-E { background: #64748B; color: #fff; }
+
+    .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; }
+    .chip {
+      border: 1px solid #CBD5E1;
+      background: #fff;
+      color: var(--navy);
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    .bottom-nav {
+      background: #fff;
+      border-top: 1px solid #E2E8F0;
+      display: flex;
+      justify-content: space-around;
+      padding: 7px 4px;
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      background: none;
+      border: none;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 5px 7px;
+      border-radius: 8px;
+    }
+    .nav-btn.active { color: var(--navy); background: var(--blue-surface); }
+
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 30;
+    }
+    .modal-box {
+      background: #fff;
+      color: var(--text);
+      border-radius: 16px;
+      padding: 16px;
+      width: 100%;
+      max-height: 85%;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    }
+    .toast {
+      position: absolute;
+      bottom: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0F172A;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      z-index: 40;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-header">
+    <div class="preview-badge">Iftin Academy • Interactive Preview (No Download)</div>
+    <p class="preview-tip">
+      Admin Passcode: <code>IFTIN#2026</code> &nbsp;|&nbsp; Parent Link: <code>IFT-101</code> / <code>749201</code> &amp; <code>IFT-102</code> / <code>831942</code>
+    </p>
+  </div>
+
+  <div class="phone">
+    <div class="phone-screen" id="appRoot">
+      <div class="notch"></div>
+      <div class="app-topbar">
+        <div class="topbar-left">
+          <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none;">←</button>
+          <div>
+            <div class="app-topbar-title">IFTIN ACADEMY</div>
+            <div class="app-topbar-sub" id="portalSub">Ku soo dhowow</div>
+          </div>
+        </div>
+        <button class="lang-pill" onclick="toggleLang()" id="langPill">SO | EN</button>
+      </div>
+
+      <div class="screen-body" id="screenBody"></div>
+      <div class="bottom-nav" id="bottomNav" style="display:none;"></div>
+      <div id="modalContainer"></div>
+      <div id="toastContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      lang: 'so',
+      portal: 'HOME',
+      tab: 'DASHBOARD',
+      selectedClassId: 'class_form1a',
+      selectedChildId: 'IFT-101',
+      linkedChildren: ['IFT-101'],
+      teachers: [
+        { id: 'T1', name: 'Ustadh Ahmed Ali', phone: '+252 61 711 2233', subjects: 'Math, Science' },
+        { id: 'T2', name: 'Ustaad Maryam Jama', phone: '+252 61 822 4455', subjects: 'Somali, Islamic' }
+      ],
+      classes: [
+        { id: 'class_form1a', name: 'Form 1A', teacher: 'Ustadh Ahmed Ali', code: '4819', year: '2025-2026' },
+        { id: 'class_grade8', name: 'Grade 8', teacher: 'Ustaad Maryam Jama', code: '7294', year: '2025-2026' }
+      ],
+      students: [
+        { id: 'IFT-101', name: 'Abdi Mohamed Farah', classId: 'class_form1a', className: 'Form 1A', code: '749201', phone: '+252 61 900 1122' },
+        { id: 'IFT-102', name: 'Amina Hassan Warsame', classId: 'class_form1a', className: 'Form 1A', code: '831942', phone: '+252 61 900 3344' },
+        { id: 'IFT-103', name: 'Khadar Omar Guled', classId: 'class_form1a', className: 'Form 1A', code: '652190', phone: '+252 61 900 5566' },
+        { id: 'IFT-104', name: 'Sahra Osman Shire', classId: 'class_form1a', className: 'Form 1A', code: '941320', phone: '+252 61 900 7788' }
+      ],
+      attendance: { 'IFT-101': 'P', 'IFT-102': 'P', 'IFT-103': 'L', 'IFT-104': 'P' },
+      exams: [
+        { id: 'EX1', name: 'Imtixaanka Nus-Sannadka (Midterm)', classId: 'class_form1a', status: 'PUBLISHED', marks: { 'IFT-101': 480, 'IFT-102': 480, 'IFT-103': 460, 'IFT-104': 450 }, max: 500 },
+        { id: 'EX2', name: 'Monthly Test - November', classId: 'class_form1a', status: 'SUBMITTED', marks: { 'IFT-101': 92, 'IFT-102': 88, 'IFT-103': 92, 'IFT-104': 79 }, max: 100 }
+      ],
+      fees: [
+        { id: 'F1', studentId: 'IFT-101', studentName: 'Abdi Mohamed Farah', title: 'November Tuition', amount: 20, paid: 20, status: 'PAID', receipt: 'RCP-84912' },
+        { id: 'F2', studentId: 'IFT-102', studentName: 'Amina Hassan Warsame', title: 'November Tuition', amount: 20, paid: 0, status: 'UNPAID', receipt: '' }
+      ],
+      homework: [
+        { id: 'H1', classId: 'class_form1a', subject: 'Mathematics', title: 'Algebraic Equations Ch. 4', due: '2026-11-15', teacher: 'Ustadh Ahmed Ali' }
+      ],
+      remarks: [
+        { studentId: 'IFT-101', cat: 'GOOD PERFORMANCE', msg: 'Abdi showed exceptional participation in mathematics this week!', teacher: 'Ustadh Ahmed Ali', date: '2026-11-08' }
+      ]
+    };
+
+    function showToast(msg) {
+      const el = document.getElementById('toastContainer');
+      el.innerHTML = `<div class="toast">${msg}</div>`;
+      setTimeout(() => { el.innerHTML = ''; }, 2400);
+    }
+
+    function toggleLang() {
+      state.lang = state.lang === 'so' ? 'en' : 'so';
+      render();
+    }
+
+    function goHome() {
+      state.portal = 'HOME';
+      state.tab = 'DASHBOARD';
+      render();
+    }
+
+    function setTab(t) {
+      state.tab = t;
+      render();
+    }
+
+    function openAdminGate() {
+      const isSo = state.lang === 'so';
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal(event)">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${isSo ? 'Albaabka Maamulka' : 'Admin Portal Login'}</div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+              ${isSo ? 'Geli furaha sirta maamulka (Passcode: IFTIN#2026):' : 'Enter administrator passcode (IFTIN#2026):'}
+            </p>
+            <input class="input" type="password" id="adminPassInput" value="IFTIN#2026" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo ? 'Jooji' : 'Cancel'}</button>
+              <button class="btn btn-navy" onclick="verifyAdmin()">${isSo ? 'Xaqiiji' : 'Verify'}</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function verifyAdmin() {
+      const val = document.getElementById('adminPassInput').value.trim();
+      if (val === 'IFTIN#2026') {
+        closeModal();
+        state.portal = 'ADMIN';
+        state.tab = 'DASHBOARD';
+        render();
+      } else {
+        showToast(state.lang === 'so' ? 'Furaha sirta waa khalad!' : 'Invalid Passcode!');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modalContainer').innerHTML = '';
+    }
+
+    function computeCompetitionRanks(marksObj, maxMarks) {
+      const entries = Object.entries(marksObj).map(([sid, score]) => {
+        const st = state.students.find(s => s.id === sid) || { name: sid };
+        const pct = maxMarks > 0 ? (score / maxMarks) * 100 : 0;
+        const grade = pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B' : pct >= 60 ? 'C' : pct >= 50 ? 'D' : 'F';
+        return { sid, name: st.name, score, pct, grade };
+      }).sort((a, b) => b.score - a.score);
+
+      for (let i = 0; i < entries.length; i++) {
+        entries[i].pos = (i > 0 && entries[i].score === entries[i - 1].score) ? entries[i - 1].pos : (i + 1);
+      }
+      return entries;
+    }
+
+    function render() {
+      const isSo = state.lang === 'so';
+      document.getElementById('langPill').textContent = isSo ? 'SO | EN' : 'EN | SO';
+      document.getElementById('backBtn').style.display = state.portal === 'HOME' ? 'none' : 'inline-block';
+
+      const body = document.getElementById('screenBody');
+      const nav = document.getElementById('bottomNav');
+      const sub = document.getElementById('portalSub');
+
+      if (state.portal === 'HOME') {
+        nav.style.display = 'none';
+        body.className = 'screen-body welcome-bg';
+        sub.textContent = isSo ? 'Dooro Qaybtaada' : 'Select Your Portal';
+        body.innerHTML = `
+          <div class="logo-circle"><img src="school_logo.jpg" alt="Iftin Logo" /></div>
+          <div style="font-size:18px;font-weight:800;margin-bottom:3px;">IFTIN ACADEMY</div>
+          <div style="font-size:11px;color:#90CDF4;margin-bottom:10px;">${isSo ? 'Aqoontu waa Iftiin - Waxbarasho Tayo Leh' : 'Education for a Brighter Future'}</div>
+          <div class="single-badge">Single School System • ID: iftin_school_2026</div>
+
+          <div class="role-card role-admin" onclick="openAdminGate()">
+            <div class="role-title"><span>${isSo ? 'Maamulaha' : 'Administrator'}</span><span class="role-tag">${isSo ? 'Albaabka Maamulka' : 'Admin Portal'}</span></div>
+            <div class="role-desc">${isSo ? 'Maamul macallimiinta, fasalada, ardayda, daabacaadda imtixaannada & lacagaha.' : 'Manage teachers, classes, students, exam publishing & school fees.'}</div>
+          </div>
+
+          <div class="role-card role-teacher" onclick="state.portal='TEACHER';state.tab='DASHBOARD';render();">
+            <div class="role-title"><span>${isSo ? 'Macallinka' : 'Teacher'}</span><span class="role-tag">${isSo ? 'Albaabka Macallimiinta' : 'Teacher Portal'}</span></div>
+            <div class="role-desc">${isSo ? 'Xaadiriska fasalka, gelinta buundooyinka, kaalmaha tartanka & shaqo-guri.' : 'Daily attendance register, marks entry, competition ranking & homework.'}</div>
+          </div>
+
+          <div class="role-card role-parent" onclick="state.portal='PARENT';state.tab='RESULTS';render();">
+            <div class="role-title"><span>${isSo ? 'Waalidka' : 'Parent'}</span><span class="role-tag">${isSo ? 'Qolka Waalidiinta' : 'Parent Room'}</span></div>
+            <div class="role-desc">${isSo ? 'Ku xir ilmahaaga ID & Furaha, la soco natiijooyinka, xaadiriska & fiiga.' : 'Link children via ID & code, view published results, attendance & fees.'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      body.className = 'screen-body';
+      nav.style.display = 'flex';
+
+      if (state.portal === 'ADMIN') {
+        sub.textContent = isSo ? 'Albaabka Maamulka' : 'Admin Portal';
+        nav.innerHTML = `
+          <button class="nav-btn ${state.tab==='DASHBOARD'?'active':''}" onclick="setTab('DASHBOARD')">${isSo?'Guud':'Home'}</button>
+          <button class="nav-btn ${state.tab==='STUDENTS'?'active':''}" onclick="setTab('STUDENTS')">${isSo?'Ardayda':'Students'}</button>
+          <button class="nav-btn ${state.tab==='EXAMS'?'active':''}" onclick="setTab('EXAMS')">${isSo?'Imtixaan':'Exams'}</button>
+          <button class="nav-btn ${state.tab==='FEES'?'active':''}" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
+        `;
+        renderAdminTab(body, isSo);
+      } else if (state.portal === 'TEACHER') {
+        sub.textContent = isSo ? 'Albaabka Macallinka' : 'Teacher Portal';
+        nav.innerHTML = `
+          <button class="nav-btn ${state.tab==='DASHBOARD'?'active':''}" onclick="setTab('DASHBOARD')">${isSo?'Fasal':'Class'}</button>
+          <button class="nav-btn ${state.tab==='ATTENDANCE'?'active':''}" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiris':'Attend'}</button>
+          <button class="nav-btn ${state.tab==='MARKS'?'active':''}" onclick="setTab('MARKS')">${isSo?'Buundo':'Marks'}</button>
+          <button class="nav-btn ${state.tab==='HOMEWORK'?'active':''}" onclick="setTab('HOMEWORK')">${isSo?'Shaqo-Guri':'HW'}</button>
+        `;
+        renderTeacherTab(body, isSo);
+      } else if (state.portal === 'PARENT') {
+        sub.textContent = isSo ? 'Qolka Waalidka' : 'Parent Portal';
+        nav.innerHTML = `
+          <button class="nav-btn ${state.tab==='RESULTS'?'active':''}" onclick="setTab('RESULTS')">${isSo?'Natiijo':'Results'}</button>
+          <button class="nav-btn ${state.tab==='ATTENDANCE'?'active':''}" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiris':'Attend'}</button>
+          <button class="nav-btn ${state.tab==='FEES'?'active':''}" onclick="setTab('FEES')">${isSo?'Fiiga':'Fees'}</button>
+          <button class="nav-btn ${state.tab==='REMARKS'?'active':''}" onclick="setTab('REMARKS')">${isSo?'Fariin':'Remarks'}</button>
+        `;
+        renderParentTab(body, isSo);
+      }
+    }
+
+    function renderAdminTab(body, isSo) {
+      if (state.tab === 'DASHBOARD') {
+        const unpaid = state.fees.reduce((a, f) => a + (f.amount - f.paid), 0);
+        const pub = state.exams.filter(e => e.status === 'PUBLISHED').length;
+        const pres = Object.values(state.attendance).filter(x => x === 'P').length;
+        body.innerHTML = `
+          <div class="stat-grid">
+            <div class="stat-box"><div class="stat-label">${isSo?'Wadarta Ardayda':'Total Students'}</div><div class="stat-val">${state.students.length}</div></div>
+            <div class="stat-box"><div class="stat-label">${isSo?'Macallimiinta':'Total Teachers'}</div><div class="stat-val">${state.teachers.length}</div></div>
+            <div class="stat-box"><div class="stat-label">${isSo?'Joogta Maanta':'Present Today'}</div><div class="stat-val" style="color:var(--green)">${pres}</div></div>
+            <div class="stat-box"><div class="stat-label">${isSo?'Fiiga Aan La Bixin':'Unpaid Fees'}</div><div class="stat-val" style="color:var(--amber)">$${unpaid}</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span>${isSo?'Imtixaannada La Daabacay':'Published Exams'}</span><span class="badge badge-green">${pub} / ${state.exams.length}</span></div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">
+              ${isSo?'Dugsigan kaliya: Iftin Academy (iftin_school_2026). Waxaa la xakamayn karaa daabacaadda natiijooyinka.':'Single school: Iftin Academy. Use Exams tab to publish or lock results.'}
+            </p>
+            <button class="btn btn-navy btn-full" onclick="setTab('EXAMS')">${isSo?'Maamul Imtixaannada':'Manage Exam Publishing'}</button>
+          </div>
+        `;
+      } else if (state.tab === 'STUDENTS') {
+        body.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <strong style="font-size:14px;color:var(--navy)">${isSo?'Ardayda':'Students'} (${state.students.length})</strong>
+            <button class="btn btn-navy btn-sm" onclick="openAddStudentModal()">+ ${isSo?'Ku dar':'Add'}</button>
+          </div>
+          ${state.students.map(s => `
+            <div class="card">
+              <div class="card-title"><span>${s.name}</span><span class="badge badge-blue">${s.className}</span></div>
+              <div style="font-size:11px;color:var(--muted);">ID: <strong>${s.id}</strong> • Linking Code: <strong style="color:#B45309">${s.code}</strong></div>
+            </div>
+          `).join('')}
+        `;
+      } else if (state.tab === 'EXAMS') {
+        body.innerHTML = state.exams.map(ex => {
+          const ranks = computeCompetitionRanks(ex.marks, ex.max);
+          return `
+            <div class="card">
+              <div class="card-title"><span>${ex.name}</span><span class="badge ${ex.status==='PUBLISHED'?'badge-green':'badge-amber'}">${ex.status}</span></div>
+              ${ranks.map(r => `
+                <div class="row-item">
+                  <span><strong>#${r.pos}</strong> ${r.name}</span>
+                  <span>${r.score}/${ex.max} (${r.grade})</span>
+                </div>
+              `).join('')}
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button class="btn btn-green btn-sm" style="flex:1" onclick="toggleExamPublish('${ex.id}')">
+                  ${ex.status==='PUBLISHED' ? (isSo?'Xir (Lock)':'Lock') : (isSo?'Daabac (Publish)':'Publish to Parents')}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else if (state.tab === 'FEES') {
+        body.innerHTML = state.fees.map(f => `
+          <div class="card">
+            <div class="card-title"><span>${f.studentName}</span><span class="badge ${f.status==='PAID'?'badge-green':'badge-red'}">${f.status}</span></div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${f.title} • $${f.paid}/$${f.amount}</div>
+            ${f.paid < f.amount ? `<button class="btn btn-navy btn-sm" onclick="payFee('${f.id}')">${isSo?'Qor Lacag Bixinta ($20)':'Record Payment ($20)'}</button>` : `<span style="font-size:11px;color:var(--green);font-weight:700;">Receipt: ${f.receipt}</span>`}
+          </div>
+        `).join('');
+      }
+    }
+
+    function openAddStudentModal() {
+      const isSo = state.lang === 'so';
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${isSo?'Diiwaangeli Arday Cusub':'Register New Student'}</div>
+            <input class="input" id="newStName" placeholder="${isSo?'Magaca oo buuxa':'Full Name'}" />
+            <input class="input" id="newStPhone" placeholder="${isSo?'Telefoonka Waalidka':'Parent Phone'}" value="+252 61 555 0000" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-navy" onclick="saveNewStudent()">${isSo?'Keydi':'Save'}</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function saveNewStudent() {
+      const name = document.getElementById('newStName').value.trim();
+      const phone = document.getElementById('newStPhone').value.trim();
+      if (!name) return;
+      const num = 101 + state.students.length;
+      const id = 'IFT-' + num;
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      state.students.push({ id, name, classId: 'class_form1a', className: 'Form 1A', code, phone });
+      state.attendance[id] = 'P';
+      closeModal();
+      showToast(state.lang === 'so' ? `Ardayga ${id} waa la keydiyay!` : `Student ${id} saved!`);
+      render();
+    }
+
+    function toggleExamPublish(id) {
+      const ex = state.exams.find(e => e.id === id);
+      ex.status = ex.status === 'PUBLISHED' ? 'LOCKED' : 'PUBLISHED';
+      showToast(state.lang === 'so' ? `Xaaladda: ${ex.status}` : `Exam status: ${ex.status}`);
+      render();
+    }
+
+    function payFee(id) {
+      const f = state.fees.find(x => x.id === id);
+      f.paid = f.amount;
+      f.status = 'PAID';
+      f.receipt = 'RCP-' + Math.floor(10000 + Math.random() * 89999);
+      showToast(state.lang === 'so' ? 'Lacag bixinta waa la keydiyay!' : 'Payment recorded!');
+      render();
+    }
+
+    function renderTeacherTab(body, isSo) {
+      if (state.tab === 'DASHBOARD') {
+        body.innerHTML = `
+          <div class="card" style="background:var(--navy);color:#fff;">
+            <div style="font-size:11px;color:#90CDF4;">${isSo?'Fasalka La Doortay':'Assigned Class'}</div>
+            <div style="font-size:18px;font-weight:800;">Form 1A • 2025-2026</div>
+            <div style="font-size:12px;margin-top:6px;">${state.students.length} ${isSo?'Arday':'Students'} • ${state.exams.length} ${isSo?'Imtixaan':'Exams'}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button class="btn btn-green" onclick="setTab('ATTENDANCE')">${isSo?'Xaadiriska':'Attendance'}</button>
+            <button class="btn btn-blue" onclick="setTab('MARKS')">${isSo?'Geli Buundo':'Enter Marks'}</button>
+            <button class="btn btn-navy" onclick="setTab('HOMEWORK')">${isSo?'Shaqo-Guri':'Homework'}</button>
+            <button class="btn btn-amber" onclick="openAddStudentModal()">+ ${isSo?'Arday':'Student'}</button>
+          </div>
+        `;
+      } else if (state.tab === 'ATTENDANCE') {
+        const pCount = Object.values(state.attendance).filter(v => v === 'P').length;
+        const pct = Math.round((pCount / state.students.length) * 100);
+        body.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong style="font-size:13px;">${isSo?'Xaadiriska':'Attendance'} (${pct}%)</strong>
+            <button class="btn btn-green btn-sm" onclick="markAllPresent()">${isSo?'Dhammaan Jooga':'Mark All Present'}</button>
+          </div>
+          ${state.students.map(s => {
+            const st = state.attendance[s.id] || 'P';
+            return `
+              <div class="card" style="padding:10px;margin-bottom:7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><div style="font-size:13px;font-weight:700;">${s.name}</div><div style="font-size:10px;color:var(--muted)">${s.id}</div></div>
+                  <div class="att-btns">
+                    ${['P','A','L','E'].map(opt => `<button class="att-btn ${st===opt?'active-'+opt:''}" onclick="setAtt('${s.id}','${opt}')">${opt}</button>`).join('')}
+                  </div>
+                </div>
+              </div>`;
+          }).join('')}
+        `;
+      } else if (state.tab === 'MARKS') {
+        const ex = state.exams[0];
+        const ranks = computeCompetitionRanks(ex.marks, ex.max);
+        body.innerHTML = `
+          <div class="card">
+            <div class="card-title"><span>${ex.name}</span><span class="badge badge-blue">Max ${ex.max}</span></div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+              ${isSo?'Beddel buundada si aad u aragto Competition Ranking (1, 1, 3, 4):':'Edit any mark to test live Competition Ranking (1, 1, 3, 4):'}
+            </p>
+            ${ranks.map(r => `
+              <div class="row-item">
+                <span><strong>#${r.pos}</strong> ${r.name} <span class="badge badge-green">${r.grade}</span></span>
+                <input type="number" style="width:65px;padding:4px;border:1px solid #CBD5E1;border-radius:6px;text-align:center;font-weight:700;"
+                  value="${r.score}" onchange="updateMark('${ex.id}','${r.sid}',this.value)" />
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (state.tab === 'HOMEWORK') {
+        body.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <strong style="font-size:14px;">${isSo?'Shaqo-Guri':'Homework'}</strong>
+            <button class="btn btn-navy btn-sm" onclick="addSampleHomework()">+ ${isSo?'Ku dar':'Add HW'}</button>
+          </div>
+          ${state.homework.map(h => `
+            <div class="card">
+              <div class="card-title"><span>${h.title}</span><span class="badge badge-blue">${h.subject}</span></div>
+              <div style="font-size:11px;color:var(--muted);">Due: ${h.due} • ${h.teacher}</div>
+            </div>
+          `).join('')}
+        `;
+      }
+    }
+
+    function setAtt(sid, opt) {
+      state.attendance[sid] = opt;
+      render();
+    }
+    function markAllPresent() {
+      state.students.forEach(s => state.attendance[s.id] = 'P');
+      showToast(state.lang === 'so' ? 'Dhammaan waa jooga!' : 'All marked present!');
+      render();
+    }
+    function updateMark(exId, sid, val) {
+      const ex = state.exams.find(e => e.id === exId);
+      const num = Math.max(0, Math.min(ex.max, Number(val) || 0));
+      ex.marks[sid] = num;
+      showToast(state.lang === 'so' ? 'Kaalmaha dib baa loo xisaabiyay!' : 'Rankings recalculated!');
+      render();
+    }
+    function addSampleHomework() {
+      state.homework.unshift({
+        id: 'H' + Date.now(),
+        classId: 'class_form1a',
+        subject: 'Somali',
+        title: state.lang === 'so' ? 'Qoraal Curis: Muhiimadda Waxbarashada' : 'Essay: Importance of Education',
+        due: '2026-11-18',
+        teacher: 'Ustaad Maryam Jama'
+      });
+      showToast(state.lang === 'so' ? 'Shaqo-guri waa la diray!' : 'Homework posted!');
+      render();
+    }
+
+    function renderParentTab(body, isSo) {
+      const child = state.students.find(s => s.id === state.selectedChildId) || state.students[0];
+      const chipsHtml = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong style="font-size:12px;color:var(--navy)">${isSo?'Carruurtaada':'Linked Children'}</strong>
+          <button class="btn btn-green btn-sm" onclick="openLinkChildModal()">+ ${isSo?'Ku Dar Arday':'Add Child'}</button>
+        </div>
+        <div class="chips">
+          ${state.linkedChildren.map(cid => {
+            const st = state.students.find(s => s.id === cid);
+            if (!st) return '';
+            return `<button class="chip ${st.id===child.id?'active':''}" onclick="state.selectedChildId='${st.id}';render();">${st.name} (${st.id})</button>`;
+          }).join('')}
+        </div>
+      `;
+
+      let content = '';
+      if (state.tab === 'RESULTS') {
+        const pubExams = state.exams.filter(e => e.status === 'PUBLISHED');
+        content = pubExams.length === 0
+          ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Weli lama daabicin imtixaan.':'No published exams yet.'}</p></div>`
+          : pubExams.map(ex => {
+              const ranks = computeCompetitionRanks(ex.marks, ex.max);
+              const myRes = ranks.find(r => r.sid === child.id);
+              return `
+                <div class="card">
+                  <div class="card-title"><span>${ex.name}</span><span class="badge badge-green">PUBLISHED</span></div>
+                  <div class="stat-grid" style="margin-top:8px;margin-bottom:4px;">
+                    <div class="stat-box" style="background:var(--blue-surface)"><div class="stat-label">${isSo?'Wadarta':'Score'}</div><div class="stat-val" style="font-size:15px">${myRes.score}/${ex.max}</div></div>
+                    <div class="stat-box" style="background:var(--blue-surface)"><div class="stat-label">${isSo?'Kaalinta & Grade':'Rank & Grade'}</div><div class="stat-val" style="font-size:15px;color:var(--green)">#${myRes.pos} • ${myRes.grade}</div></div>
+                  </div>
+                </div>`;
+            }).join('');
+      } else if (state.tab === 'ATTENDANCE') {
+        const st = state.attendance[child.id] || 'P';
+        const label = st === 'P' ? (isSo?'Jooga':'PRESENT') : st === 'A' ? (isSo?'Maqan':'ABSENT') : st === 'L' ? (isSo?'Soo Daahay':'LATE') : (isSo?'Cudurdaar':'EXCUSED');
+        content = `
+          <div class="card">
+            <div class="card-title"><span>${isSo?'Xaadiriska Maanta':'Today Attendance'}</span><span class="badge ${st==='P'?'badge-green':'badge-amber'}">${label}</span></div>
+            <div style="font-size:12px;color:var(--muted);">${child.name} • ${child.className}</div>
+          </div>`;
+      } else if (state.tab === 'FEES') {
+        const myFees = state.fees.filter(f => f.studentId === child.id);
+        content = myFees.length === 0
+          ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Wax fi ah laguma laha.':'No fees recorded.'}</p></div>`
+          : myFees.map(f => `
+              <div class="card">
+                <div class="card-title"><span>${f.title}</span><span class="badge ${f.status==='PAID'?'badge-green':'badge-red'}">${f.status}</span></div>
+                <div style="font-size:12px;color:var(--muted);">$${f.paid} / $${f.amount} ${f.receipt ? '• ' + f.receipt : ''}</div>
+              </div>`).join('');
+      } else if (state.tab === 'REMARKS') {
+        const myRemarks = state.remarks.filter(r => r.studentId === child.id);
+        content = myRemarks.length === 0
+          ? `<div class="card"><p style="font-size:12px;color:var(--muted)">${isSo?'Ma jirto fariin cusub.':'No remarks yet.'}</p></div>`
+          : myRemarks.map(r => `
+              <div class="card">
+                <div class="card-title"><span>${r.cat}</span><span style="font-size:10px;color:var(--muted)">${r.date}</span></div>
+                <div style="font-size:12px;margin-bottom:4px;">${r.msg}</div>
+                <div style="font-size:10px;color:var(--muted)">— ${r.teacher}</div>
+              </div>`).join('');
+      }
+
+      body.innerHTML = chipsHtml + content;
+    }
+
+    function openLinkChildModal() {
+      const isSo = state.lang === 'so';
+      document.getElementById('modalContainer').innerHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+          <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="card-title">${isSo?'Ku Xir Arday Cusub':'Link Student to Parent Room'}</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">${isSo?'Tijaabo: ID = IFT-102, Code = 831942':'Demo: ID = IFT-102, Code = 831942'}</p>
+            <input class="input" id="linkStId" placeholder="Student ID (e.g. IFT-102)" value="IFT-102" />
+            <input class="input" id="linkStCode" placeholder="Linking Code (e.g. 831942)" value="831942" />
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-outline" onclick="closeModal()">${isSo?'Jooji':'Cancel'}</button>
+              <button class="btn btn-green" onclick="confirmLinkChild()">${isSo?'Xiriiri':'Link Student'}</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function confirmLinkChild() {
+      const id = document.getElementById('linkStId').value.trim();
+      const code = document.getElementById('linkStCode').value.trim();
+      const found = state.students.find(s => s.id.toUpperCase() === id.toUpperCase() && s.code === code);
+      if (found) {
+        if (!state.linkedChildren.includes(found.id)) state.linkedChildren.push(found.id);
+        state.selectedChildId = found.id;
+        closeModal();
+        showToast(state.lang === 'so' ? `${found.name} waa la xiriiriyay!` : `${found.name} linked!`);
+        render();
+      } else {
+        showToast(state.lang === 'so' ? 'ID ama Code waa khalad!' : 'Invalid Student ID or Code!');
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

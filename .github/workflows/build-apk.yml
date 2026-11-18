@@ -1,4 +1,4 @@
-name: Build and Upload APK
+name: Build and Verify APK
 
 on:
   push:
@@ -23,14 +23,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.3.1"
-      - name: Generate debug keystore
+      - name: Configure debug keystore
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
-          keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > debug.keystore
+          else
+            keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
       - name: Build Debug APK
         run: gradle :app:assembleDebug --no-daemon
-      - name: Upload APK to v1.2.0 Release
+      - name: Upload APK only when matching Firebase keystore secret is configured
+        if: env.HAS_SECRET == 'true'
         env:
+          HAS_SECRET: ${{ secrets.DEBUG_KEYSTORE_BASE64 != '' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk IftinSchool-v1.2.0.apk
-          gh release upload v1.2.0 IftinSchool-v1.2.0.apk --clobber
+          cp app/build/outputs/apk/debug/app-debug.apk IftinSchool-v1.2.1.apk
+          gh release upload v1.2.1 IftinSchool-v1.2.1.apk --clobber

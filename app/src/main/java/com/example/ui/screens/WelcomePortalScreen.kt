@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,10 +46,13 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.example.R
 import com.example.localization.AppStrings
 import com.example.ui.MainViewModel
 import com.example.ui.theme.*
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
@@ -56,6 +61,12 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 @Composable
 fun WelcomePortalScreen(
@@ -81,21 +92,60 @@ fun WelcomePortalScreen(
     var isSigningIn by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(Unit) {
+        if (Firebase.auth.currentUser == null) {
+            val clientId = try {
+                context.getString(R.string.default_web_client_id)
+            } catch (_: Exception) {
+                null
+            }
+            if (!clientId.isNullOrBlank()) {
+                try {
+                    val googleIdOption = GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(true)
+                        .setServerClientId(clientId)
+                        .setAutoSelectEnabled(true)
+                        .build()
+                    val request = GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build()
+                    val activityContext = context.findActivity() ?: context
+                    val cred = credentialManager.getCredential(activityContext, request).credential
+                    if (cred is CustomCredential && cred.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                        val token = GoogleIdTokenCredential.createFrom(cred.data).idToken
+                        Firebase.auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
+                        viewModel.refreshAuthUser()
+                    }
+                } catch (_: Exception) {
+                    // Silent auto sign-in fallback handled by explicit Google button
+                }
+            }
+        }
+    }
+
     fun signInWithGoogle(onSuccessRole: ((String) -> Unit)? = null) {
+        if (isSigningIn) return
+        authError = null
+
         val clientId = try {
             context.getString(R.string.default_web_client_id)
         } catch (e: Exception) {
-            authError = "Google Web Client ID missing: ${e.message}"
+            authError = if (lang == "so") {
+                "Cilad dhanka habaynta Google Sign-In ah: default_web_client_id lama helin."
+            } else {
+                "Google Web Client ID missing: ${e.message}"
+            }
             return
         }
 
+        val activityContext = context.findActivity() ?: context
         val signInOption = GetSignInWithGoogleOption.Builder(serverClientId = clientId).build()
         val request = GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
 
         isSigningIn = true
         scope.launch {
             try {
-                val result = credentialManager.getCredential(context as Activity, request)
+                val result = credentialManager.getCredential(activityContext, request)
                 val credential = result.credential
                 if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                     val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
@@ -103,17 +153,49 @@ fun WelcomePortalScreen(
                     Firebase.auth.signInWithCredential(authCredential).await()
                     viewModel.refreshAuthUser()
                     isSigningIn = false
+                    authError = null
                     onSuccessRole?.invoke("AUTH_OK")
                 } else {
-                    authError = "Unexpected credential format"
+                    authError = if (lang == "so") {
+                        "Nooca aqoonsiga Google ee la helay lama aqoonsan."
+                    } else {
+                        "Unexpected credential format"
+                    }
                     isSigningIn = false
                 }
             } catch (e: GetCredentialCancellationException) {
-                Log.w("Auth", "Google Sign-In dismissed: ${e.message}", e)
+                Log.w("Auth", "Google Sign-In cancelled or dismissed: ${e.message}", e)
+                isSigningIn = false
+                val msg = e.errorMessage?.toString().orEmpty()
+                if (msg.contains("developer", ignoreCase = true) ||
+                    msg.contains("sha", ignoreCase = true) ||
+                    msg.contains("10", ignoreCase = true) ||
+                    msg.contains("28444", ignoreCase = true)
+                ) {
+                    authError = if (lang == "so") {
+                        "Xaqiijinta Google way diiday ($msg). Fadlan isticmaal APK-ga cusub."
+                    } else {
+                        "Google Sign-In configuration error: $msg"
+                    }
+                }
+            } catch (e: NoCredentialException) {
+                Log.w("Auth", "No Google credentials found: ${e.message}", e)
+                authError = if (lang == "so") {
+                    "Akoon Google oo firfircoon lagama helin taleefankaaga. Fadlan ku dar Gmail."
+                } else {
+                    "No Google account available on this device. Please add a Google account."
+                }
+                isSigningIn = false
+            } catch (e: GetCredentialException) {
+                Log.e("Auth", "Credential Manager error: ${e.type} - ${e.errorMessage}", e)
+                authError = e.errorMessage?.toString()
+                    ?: e.localizedMessage
+                    ?: if (lang == "so") "Gelitaanka Google wuu fashilmay." else "Google Sign-In failed"
                 isSigningIn = false
             } catch (e: Exception) {
                 Log.e("Auth", "Google Sign-In failed", e)
-                authError = e.localizedMessage ?: "Sign-in failed"
+                authError = e.localizedMessage
+                    ?: if (lang == "so") "Gelitaanka Google wuu fashilmay." else "Sign-in failed"
                 isSigningIn = false
             }
         }
@@ -443,6 +525,7 @@ fun WelcomePortalScreen(
         if (currentUser == null) {
             Surface(
                 onClick = { signInWithGoogle() },
+                enabled = !isSigningIn,
                 shape = RoundedCornerShape(16.dp),
                 color = Color.White,
                 shadowElevation = 8.dp,

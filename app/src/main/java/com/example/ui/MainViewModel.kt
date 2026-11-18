@@ -2,19 +2,28 @@ package com.example.ui
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.models.*
 import com.example.data.repository.SchoolRepository
 import com.example.localization.AppStrings
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -99,10 +108,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val dataObservationJobs = mutableListOf<Job>()
+    private var parentProfileJob: Job? = null
+    private var observedUid: String? = null
+
+    private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
+        val user = auth.currentUser
+        _currentUser.value = user
+        if (user != null) {
+            if (observedUid != user.uid) {
+                observedUid = user.uid
+                loadSchoolConfig()
+                startObservingData()
+            }
+            loadUserProfileAndParent(user.uid)
+        } else {
+            observedUid = null
+            stopObservingData()
+            _userProfile.value = null
+            _parentProfile.value = null
+            _linkedStudents.value = emptyList()
+            _selectedChild.value = null
+        }
+    }
+
     init {
-        loadSchoolConfig()
-        observeData()
-        Firebase.auth.currentUser?.let { refreshAuthUser() }
+        Firebase.auth.addAuthStateListener(authStateListener)
+        Firebase.auth.currentUser?.let { user ->
+            observedUid = user.uid
+            loadSchoolConfig()
+            startObservingData()
+            loadUserProfileAndParent(user.uid)
+        }
+    }
+
+    override fun onCleared() {
+        Firebase.auth.removeAuthStateListener(authStateListener)
+        stopObservingData()
+        super.onCleared()
     }
 
     fun setLanguage(lang: String) {
@@ -150,6 +193,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadSchoolConfig() {
+        if (Firebase.auth.currentUser == null) return
         viewModelScope.launch {
             try {
                 val cfg = repository.getSchoolConfig()
@@ -158,8 +202,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     getApplication<Application>().getString(com.example.R.string.firestore_database_id)
                 )
                 com.example.data.SampleDataSeeder.seedInitialDataIfEmpty(repository, db)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.w("MainViewModel", "Failed to load school config: ${e.message}", e)
             }
         }
     }
@@ -168,15 +214,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val user = Firebase.auth.currentUser
         _currentUser.value = user
         if (user != null) {
-            viewModelScope.launch {
-                val prof = repository.getUserProfile(user.uid)
-                _userProfile.value = prof
-                if (prof?.role == "PARENT" || prefs.getBoolean("parent_room_${user.uid}", false)) {
-                    prefs.edit().putBoolean("parent_room_${user.uid}", true).apply()
-                    loadParentProfile(user.uid)
-                }
+            if (observedUid != user.uid) {
+                observedUid = user.uid
+                loadSchoolConfig()
+                startObservingData()
             }
+            loadUserProfileAndParent(user.uid)
         } else {
+            observedUid = null
+            stopObservingData()
             _userProfile.value = null
             _parentProfile.value = null
             _linkedStudents.value = emptyList()
@@ -184,58 +230,142 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun observeData() {
+    private fun loadUserProfileAndParent(uid: String) {
         viewModelScope.launch {
-            repository.observeTeachers().collectLatest { _teachers.value = it }
-        }
-        viewModelScope.launch {
-            repository.observeClasses().collectLatest { list ->
-                _classes.value = list
-                val currentId = _selectedClass.value?.classId
-                if (currentId != null) {
-                    _selectedClass.value = list.firstOrNull { it.classId == currentId }
+            try {
+                val prof = repository.getUserProfile(uid)
+                _userProfile.value = prof
+                if (prof?.role == "PARENT" || prefs.getBoolean("parent_room_$uid", false)) {
+                    prefs.edit().putBoolean("parent_room_$uid", true).apply()
+                    loadParentProfile(uid)
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("MainViewModel", "Failed to load user profile: ${e.message}", e)
             }
         }
-        viewModelScope.launch {
-            repository.observeStudents().collectLatest { _students.value = it }
+    }
+
+    private fun stopObservingData() {
+        dataObservationJobs.forEach { it.cancel() }
+        dataObservationJobs.clear()
+        parentProfileJob?.cancel()
+        parentProfileJob = null
+    }
+
+    private fun startObservingData() {
+        if (Firebase.auth.currentUser == null) return
+        stopObservingData()
+
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeTeachers()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeTeachers error: ${e.message}")
+                }
+                .collectLatest { _teachers.value = it }
         }
-        viewModelScope.launch {
-            repository.observeExamFolders().collectLatest { _examFolders.value = it }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeClasses()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeClasses error: ${e.message}")
+                }
+                .collectLatest { list ->
+                    _classes.value = list
+                    val currentId = _selectedClass.value?.classId
+                    if (currentId != null) {
+                        _selectedClass.value = list.firstOrNull { it.classId == currentId }
+                    }
+                }
         }
-        viewModelScope.launch {
-            repository.observeExaminations().collectLatest { _examinations.value = it }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeStudents()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeStudents error: ${e.message}")
+                }
+                .collectLatest { _students.value = it }
         }
-        viewModelScope.launch {
-            repository.observeAllAttendance().collectLatest { _allAttendance.value = it }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeExamFolders()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeExamFolders error: ${e.message}")
+                }
+                .collectLatest { _examFolders.value = it }
         }
-        viewModelScope.launch {
-            repository.observeFees().collectLatest { _fees.value = it }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeExaminations()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeExaminations error: ${e.message}")
+                }
+                .collectLatest { _examinations.value = it }
         }
-        viewModelScope.launch {
-            repository.observeFeePayments().collectLatest { _feePayments.value = it }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeAllAttendance()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeAllAttendance error: ${e.message}")
+                }
+                .collectLatest { _allAttendance.value = it }
         }
-        viewModelScope.launch {
-            repository.observeNotifications("ALL").collectLatest { _notifications.value = it }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeFees()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeFees error: ${e.message}")
+                }
+                .collectLatest { _fees.value = it }
+        }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeFeePayments()
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeFeePayments error: ${e.message}")
+                }
+                .collectLatest { _feePayments.value = it }
+        }
+        dataObservationJobs += viewModelScope.launch {
+            repository.observeNotifications("ALL")
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeNotifications error: ${e.message}")
+                }
+                .collectLatest { _notifications.value = it }
         }
     }
 
     fun loadParentProfile(parentId: String) {
-        viewModelScope.launch {
-            repository.observeParentProfile(parentId).collectLatest { profile ->
-                _parentProfile.value = profile
-                if (profile != null) {
-                    prefs.edit().putBoolean("parent_room_$parentId", true).apply()
-                    val kids = repository.getStudentsByIds(profile.linkedStudentIds)
-                    _linkedStudents.value = kids
-                    val selectedId = _selectedChild.value?.studentId
-                    _selectedChild.value = if (selectedId != null) {
-                        kids.firstOrNull { it.studentId == selectedId } ?: kids.firstOrNull()
-                    } else {
-                        kids.firstOrNull()
+        parentProfileJob?.cancel()
+        parentProfileJob = viewModelScope.launch {
+            repository.observeParentProfile(parentId)
+                .catch { e ->
+                    if (e is CancellationException && e.cause == null) throw e
+                    Log.w("MainViewModel", "observeParentProfile error: ${e.message}")
+                }
+                .collectLatest { profile ->
+                    _parentProfile.value = profile
+                    if (profile != null) {
+                        prefs.edit().putBoolean("parent_room_$parentId", true).apply()
+                        try {
+                            val kids = repository.getStudentsByIds(profile.linkedStudentIds)
+                            _linkedStudents.value = kids
+                            val selectedId = _selectedChild.value?.studentId
+                            _selectedChild.value = if (selectedId != null) {
+                                kids.firstOrNull { it.studentId == selectedId } ?: kids.firstOrNull()
+                            } else {
+                                kids.firstOrNull()
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.w("MainViewModel", "Failed to load linked students: ${e.message}")
+                        }
                     }
                 }
-            }
         }
     }
 
@@ -647,15 +777,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun signOut(onSignedOut: () -> Unit) {
-        Firebase.auth.signOut()
-        _currentUser.value = null
-        _userProfile.value = null
-        _parentProfile.value = null
-        _linkedStudents.value = emptyList()
-        _selectedChild.value = null
-        _unlockedClassIds.value = emptySet()
-        _selectedClass.value = null
-        _currentPortal.value = "HOME"
-        onSignedOut()
+        stopObservingData()
+        observedUid = null
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                try {
+                    CredentialManager.create(getApplication()).clearCredentialState(ClearCredentialStateRequest())
+                } catch (e: Exception) {
+                    Log.w("Auth", "Failed to clear credential state: ${e.message}")
+                } finally {
+                    Firebase.auth.signOut()
+                    _currentUser.value = null
+                    _userProfile.value = null
+                    _parentProfile.value = null
+                    _linkedStudents.value = emptyList()
+                    _selectedChild.value = null
+                    _unlockedClassIds.value = emptySet()
+                    _selectedClass.value = null
+                    _currentPortal.value = "HOME"
+                    onSignedOut()
+                }
+            }
+        }
     }
 }

@@ -317,7 +317,7 @@ fun ParentDashboardScreen(
     }
 }
 
-// 1. Parent Results Tab (Beautiful Visual Report Card with Subject Marks & Grade Table)
+// 1. Parent Results Tab (First shows Student Result Summary Card; tapping Preview opens full certificate Report Card)
 @Composable
 fun ParentChildResultsTab(
     student: Student,
@@ -327,8 +327,14 @@ fun ParentChildResultsTab(
     viewModel: MainViewModel
 ) {
     val context = LocalContext.current
+    val classes by viewModel.classes.collectAsState()
     val publishedExams = allExams.filter { it.classId == student.classId && it.status == "PUBLISHED" }
     val resultsState by viewModel.repository.observeStudentResults(student.studentId).collectAsState(initial = emptyList())
+    val classTeacherName = remember(classes, student.classId) {
+        classes.firstOrNull { it.classId == student.classId }?.classTeacherName.orEmpty()
+    }
+
+    var previewExamAndResult by remember { mutableStateOf<Pair<Examination, ExamResult>?>(null) }
 
     if (publishedExams.isEmpty()) {
         EmptyStateCard(
@@ -344,7 +350,7 @@ fun ParentChildResultsTab(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(publishedExams) { exam ->
                 val result = resultsState.firstOrNull { it.examId == exam.examId } ?: ExamResult(
@@ -362,43 +368,61 @@ fun ParentChildResultsTab(
                     position = 0L
                 )
 
-                Column {
-                    BeautifulReportCardView(
-                        school = school,
-                        student = student,
-                        exam = exam,
-                        result = result,
-                        lang = lang
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    VibrantGradientButton(
-                        text = AppStrings.get("download_pdf", lang),
-                        icon = Icons.Default.Download,
-                        gradient = GradientRoyalBlue,
-                        onClick = {
-                            val pdfFile = ReportCardPdfGenerator.generateReportCard(
-                                context = context,
-                                school = school,
-                                student = student,
-                                exam = exam,
-                                result = result,
-                                language = lang
-                            )
-                            if (pdfFile != null) {
-                                ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
-                            } else {
-                                Toast.makeText(context, "Failed to create PDF", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("parent_download_report_card")
-                    )
-                }
+                StudentResultSummaryCard(
+                    student = student,
+                    exam = exam,
+                    result = result,
+                    lang = lang,
+                    onPreview = { previewExamAndResult = exam to result },
+                    onDownloadPdf = {
+                        val pdfFile = ReportCardPdfGenerator.generateReportCard(
+                            context = context,
+                            school = school,
+                            student = student,
+                            exam = exam,
+                            result = result,
+                            language = lang,
+                            classTeacherName = classTeacherName
+                        )
+                        if (pdfFile != null) {
+                            ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
+                        } else {
+                            Toast.makeText(context, "Failed to create PDF", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.testTag("parent_download_report_card")
+                )
             }
         }
+    }
+
+    if (previewExamAndResult != null) {
+        val (exam, result) = previewExamAndResult!!
+        StudentReportPreviewDialog(
+            student = student,
+            exam = exam,
+            result = result,
+            school = school,
+            lang = lang,
+            classTeacherName = classTeacherName,
+            onDownloadPdf = {
+                val pdfFile = ReportCardPdfGenerator.generateReportCard(
+                    context = context,
+                    school = school,
+                    student = student,
+                    exam = exam,
+                    result = result,
+                    language = lang,
+                    classTeacherName = classTeacherName
+                )
+                if (pdfFile != null) {
+                    ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
+                } else {
+                    Toast.makeText(context, "Failed to create PDF", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { previewExamAndResult = null }
+        )
     }
 }
 

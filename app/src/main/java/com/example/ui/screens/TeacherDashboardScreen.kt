@@ -1900,8 +1900,13 @@ fun TeacherAllReportCardsDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val classes by viewModel.classes.collectAsState()
+    val classTeacherName = remember(classes, exam.classId) {
+        classes.firstOrNull { it.classId == exam.classId }?.classTeacherName.orEmpty()
+    }
     val results by viewModel.repository.observeExamResults(exam.examId).collectAsState(initial = emptyList())
     var selectedStudentFilter by remember { mutableStateOf<String?>(null) }
+    var previewPair by remember { mutableStateOf<Pair<Student, ExamResult>?>(null) }
 
     val displayList = remember(students, results, selectedStudentFilter) {
         val base = students.map { st ->
@@ -1960,42 +1965,32 @@ fun TeacherAllReportCardsDialog(
 
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 420.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(displayList) { (st, res) ->
-                        Column {
-                            BeautifulReportCardView(
-                                school = school,
-                                student = st,
-                                exam = exam,
-                                result = res,
-                                lang = lang
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            VibrantGradientButton(
-                                text = "${AppStrings.get("download_pdf", lang)} (${st.fullName})",
-                                icon = Icons.Default.Download,
-                                gradient = GradientRoyalBlue,
-                                height = 40.dp,
-                                fontSize = 11,
-                                onClick = {
-                                    val pdfFile = ReportCardPdfGenerator.generateReportCard(
-                                        context = context,
-                                        school = school,
-                                        student = st,
-                                        exam = exam,
-                                        result = res,
-                                        language = lang
-                                    )
-                                    if (pdfFile != null) {
-                                        ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
-                                    } else {
-                                        Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                        StudentResultSummaryCard(
+                            student = st,
+                            exam = exam,
+                            result = res,
+                            lang = lang,
+                            onPreview = { previewPair = st to res },
+                            onDownloadPdf = {
+                                val pdfFile = ReportCardPdfGenerator.generateReportCard(
+                                    context = context,
+                                    school = school,
+                                    student = st,
+                                    exam = exam,
+                                    result = res,
+                                    language = lang,
+                                    classTeacherName = classTeacherName
+                                )
+                                if (pdfFile != null) {
+                                    ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
+                                } else {
+                                    Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -2004,6 +1999,35 @@ fun TeacherAllReportCardsDialog(
             VibrantGradientButton(text = "OK", gradient = GradientEmerald, height = 40.dp, onClick = onDismiss)
         }
     )
+
+    if (previewPair != null) {
+        val (st, res) = previewPair!!
+        StudentReportPreviewDialog(
+            student = st,
+            exam = exam,
+            result = res,
+            school = school,
+            lang = lang,
+            classTeacherName = classTeacherName,
+            onDownloadPdf = {
+                val pdfFile = ReportCardPdfGenerator.generateReportCard(
+                    context = context,
+                    school = school,
+                    student = st,
+                    exam = exam,
+                    result = res,
+                    language = lang,
+                    classTeacherName = classTeacherName
+                )
+                if (pdfFile != null) {
+                    ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
+                } else {
+                    Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { previewPair = null }
+        )
+    }
 }
 
 // Dialog: Create Class Fee Folder

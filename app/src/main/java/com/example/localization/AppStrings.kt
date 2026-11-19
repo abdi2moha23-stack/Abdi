@@ -155,6 +155,16 @@ object AppStrings {
         "competition_rank" to "Kaalinta Guud",
         "teacher_remarks" to "Qiimeynta & Waxa uu U Qalmo Ardaygu",
         "exam_status" to "Xaaladda Imtixaanka",
+        "preview_report" to "Fiiri Report-ka",
+        "exam_result_report" to "WARBIXINTA NATIIJADA IMTIXAANKA",
+        "teacher_reply" to "Faallada Macallinka",
+        "report_date" to "Taariikhda Warbixinta",
+        "well_done" to "Hambalyo!",
+        "keep_striving" to "Sii Wad Dadaalka!",
+        "build_brighter_future" to "Dhis Mustaqbal Iftiin Leh",
+        "no_col" to "Tiro",
+        "term_label" to "Imtixaanka",
+        "student_name_label" to "Magaca Ardayga",
 
         // Exam Statuses
         "status_draft" to "Qabyo",
@@ -359,6 +369,16 @@ object AppStrings {
         "competition_rank" to "Competition Rank",
         "teacher_remarks" to "Teacher Evaluation / Deserving Remarks",
         "exam_status" to "Exam Status",
+        "preview_report" to "Preview Report",
+        "exam_result_report" to "EXAM RESULT REPORT",
+        "teacher_reply" to "Teacher's Reply",
+        "report_date" to "Report Date",
+        "well_done" to "Well Done!",
+        "keep_striving" to "Keep Striving!",
+        "build_brighter_future" to "Build a Brighter Future",
+        "no_col" to "No.",
+        "term_label" to "Term",
+        "student_name_label" to "Student Name",
 
         // Exam Statuses
         "status_draft" to "Draft",

@@ -395,12 +395,14 @@ fun AdminDashboardScreen(
 
     if (selectedReportPreview != null) {
         val (st, ex, res) = selectedReportPreview!!
+        val teacherName = classes.firstOrNull { it.classId == ex.classId }?.classTeacherName.orEmpty()
         AdminStudentReportDialog(
             student = st,
             exam = ex,
             result = res,
             school = schoolConfig,
             lang = lang,
+            classTeacherName = teacherName,
             onDismiss = { selectedReportPreview = null }
         )
     }
@@ -1703,7 +1705,7 @@ fun AdminClassExamStudentsDialog(
                                         .background(AmberWarning),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("#${res.position}", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, color = Color(0xFF0F172A))
+                                    Text(formatOrdinalPosition(res.position), fontWeight = FontWeight.ExtraBold, fontSize = 10.sp, color = Color(0xFF0F172A))
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 AvatarImage(photoBase64 = st.photoUrl, name = st.fullName, size = 34.dp, accentColor = NavyLight)
@@ -1716,7 +1718,19 @@ fun AdminClassExamStudentsDialog(
                                         color = TextSecondary
                                     )
                                 }
-                                Icon(Icons.Default.Assessment, contentDescription = "View Report", tint = BlueSecondary)
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = NavyLight
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.Visibility, contentDescription = "Preview", tint = Color.White, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(AppStrings.get("preview", lang), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
                         }
                     }
@@ -1736,54 +1750,34 @@ fun AdminStudentReportDialog(
     result: ExamResult,
     school: SchoolConfig,
     lang: String,
+    classTeacherName: String = "",
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        shape = RoundedCornerShape(22.dp),
-        title = {
-            Text(AppStrings.get("view_report_card", lang), fontFamily = OutfitFontFamily, fontWeight = FontWeight.Bold, color = NavyPrimary)
-        },
-        text = {
-            LazyColumn(modifier = Modifier.heightIn(max = 460.dp)) {
-                item {
-                    BeautifulReportCardView(
-                        school = school,
-                        student = student,
-                        exam = exam,
-                        result = result,
-                        lang = lang
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    VibrantGradientButton(
-                        text = AppStrings.get("download_pdf", lang),
-                        icon = Icons.Default.Download,
-                        gradient = GradientRoyalBlue,
-                        onClick = {
-                            val pdfFile = ReportCardPdfGenerator.generateReportCard(
-                                context = context,
-                                school = school,
-                                student = student,
-                                exam = exam,
-                                result = result,
-                                language = lang
-                            )
-                            if (pdfFile != null) {
-                                ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
-                            } else {
-                                Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+    StudentReportPreviewDialog(
+        student = student,
+        exam = exam,
+        result = result,
+        school = school,
+        lang = lang,
+        classTeacherName = classTeacherName,
+        onDownloadPdf = {
+            val pdfFile = ReportCardPdfGenerator.generateReportCard(
+                context = context,
+                school = school,
+                student = student,
+                exam = exam,
+                result = result,
+                language = lang,
+                classTeacherName = classTeacherName
+            )
+            if (pdfFile != null) {
+                ReportCardPdfGenerator.shareReportCardPdf(context, pdfFile)
+            } else {
+                Toast.makeText(context, "Error generating PDF", Toast.LENGTH_SHORT).show()
             }
         },
-        confirmButton = {
-            VibrantGradientButton(text = "OK", gradient = GradientEmerald, height = 40.dp, onClick = onDismiss)
-        }
+        onDismiss = onDismiss
     )
 }
 

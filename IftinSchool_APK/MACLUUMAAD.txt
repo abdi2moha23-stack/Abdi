@@ -1,0 +1,15 @@
+Iftin School Management System - v1.2.6 (Offline + Clean)
+=========================================================
+
+Faylka ku jira folder-kan:
+- IftinSchool-v1.2.6.apk (29.8 MB - APK dhameystiran oo saxiixan)
+
+Astaamaha v1.2.6:
+1. Waxay ku shaqaysaa Offline (Internet La'aan) iyadoo adeegsanaysa keydka taleefanka (Room SQLite), waxayna si toos ah ula midowdaa Cloud-ka marka khad & Google Sign-In la helo.
+2. Dhammaan xogtii Demo-ga ahayd (arday, macallimiin, fasallo demo ah) waa laga saaray.
+3. ID-yada ardaydu waxay ka bilaabmaan 001 ilaa 999 -> 1000+.
+4. Kaalmaha 1aad, 2aad, 3aad waxay leeyihiin billado kala duwan, Blur, Confetti, iyo Hambalyo.
+
+Furayaasha Sirta ee Hore (Default Passcodes):
+- Maamulaha (Admin): IFTIN#2026
+- Macallimiinta (Teacher): TEACH2026
